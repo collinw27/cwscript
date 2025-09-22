@@ -5,6 +5,7 @@ from cwscript.lexer.token import Token
 
 _code = ""
 _c = ""
+_line = 0
 
 def lex(code):
 
@@ -31,18 +32,18 @@ def lex(code):
 		# Lex grouping symbols (one character exactly)
 
 		if (_c in OPENING_GROUPINGS):
-			tokens.append(Token(Token.GROUP_OPEN, _c))
+			tokens.append(Token(Token.GROUP_OPEN, _c, _line))
 			_pop_char()
 			continue
 		if (_c in CLOSING_GROUPINGS):
-			tokens.append(Token(Token.GROUP_CLOSE, _c))
+			tokens.append(Token(Token.GROUP_CLOSE, _c, _line))
 			_pop_char()
 			continue
 
 		# Lex separators (one character exactly)
 
 		if (_c in [',', ';']):
-			tokens.append(Token(Token.SEMICOLON if _c == ';' else Token.COMMA, _c))
+			tokens.append(Token(Token.SEMICOLON if _c == ';' else Token.COMMA, _c, _line))
 			_pop_char()
 			continue
 
@@ -74,12 +75,12 @@ def lex(code):
 
 			if (_c in WHITESPACE):
 				if (not rules.is_binary_op(token)):
-					raise CWLexError(f"Prefix operator '{token}' cannot be followed by whitespace")
-				tokens.append(Token(Token.BINARY_OP, token))
+					raise CWLexError(f"Prefix operator '{token}' cannot be followed by whitespace", _line)
+				tokens.append(Token(Token.BINARY_OP, token, _line))
 			else:
 				if (not rules.is_prefix_op(token)):
-					raise CWLexError(f"Binary operator '{token}' must be surrounded by whitespace")
-				tokens.append(Token(Token.PREFIX_OP, token))
+					raise CWLexError(f"Binary operator '{token}' must be surrounded by whitespace", _line)
+				tokens.append(Token(Token.PREFIX_OP, token, _line))
 			continue
 
 		# For strings, continue until a closing quote is reached
@@ -94,7 +95,7 @@ def lex(code):
 			while (True):
 
 				if (_c == ''):
-					raise CWLexError("Unterminated string literal")
+					raise CWLexError("Unterminated string literal", _line)
 
 				# Quote can only be closed if not in escape sequence
 
@@ -115,7 +116,7 @@ def lex(code):
 				token += _c
 				_pop_char()
 
-			tokens.append(Token(Token.FREE_TYPE, token))
+			tokens.append(Token(Token.FREE_TYPE, token, _line))
 			continue
 
 		# For anything else, keep it as one token
@@ -135,16 +136,18 @@ def lex(code):
 		# Check if token matches a defined expression root
 
 		if (rules.is_expression(token)):
-			tokens.append(Token(Token.EXPR_ROOT, token))
+			tokens.append(Token(Token.EXPR_ROOT, token, _line))
 		else:
-			tokens.append(Token(Token.FREE_TYPE, token))
+			tokens.append(Token(Token.FREE_TYPE, token, _line))
 
 	return tokens
 
 def _pop_char():
 
-	global _code, _c
+	global _code, _c, _line
 	old_c = _c
 	_c = '' if len(_code) == 0 else _code[0]
 	_code = _code[1:]
+	if (_c in NEWLINES):
+		_line += 1
 	return old_c

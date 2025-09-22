@@ -10,9 +10,9 @@ class DynamicLiteral (ScriptLiteral):
 		pass
 
 	@staticmethod
-	def parse(string):
+	def parse(line, string):
 
-		return StringLiteral(string)
+		return StringLiteral(line, string)
 
 # For now, parse everything into a string literal
 # This allows testing the parser without needing to
@@ -20,7 +20,7 @@ class DynamicLiteral (ScriptLiteral):
 
 class StringLiteral (DynamicLiteral):
 
-	def __init__(self, value):
+	def __init__(self, line, value):
 
-		super()
+		super().__init__(line)
 		self.value = value

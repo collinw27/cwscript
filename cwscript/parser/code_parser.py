@@ -29,19 +29,19 @@ def _parse_block(tokens):
 				stack.append(token.body)
 			elif (token.type == Token.GROUP_CLOSE):
 				if (not stack):
-					raise CWParseError(f"Unbalanced closing symbol '{token.body}'")
+					raise CWParseError(f"Unbalanced closing symbol '{token.body}'", token.get_line())
 				elif (not rules.check_group_symbols(stack[-1], token.body)):
-					raise CWParseError(f"Unexpected closing symbol '{token.body}'")
+					raise CWParseError(f"Unexpected closing symbol '{token.body}'", token.get_line())
 				else:
 					stack.pop()
 			elif (token.type == Token.SEMICOLON):
 				if (not stack):
 					break
 		if (this_statement[-1].type != Token.SEMICOLON):
-			raise CWParseError("Statement does not end with semicolon")
+			raise CWParseError("Statement does not end with semicolon", this_statement[-1].get_line())
 		statements.append(_parse_group(this_statement[:-1]))
 
-	return BlockLiteral(statements)
+	return BlockLiteral(statements[0].get_line(), statements)
 
 # Returns a DynamicLiteral to be used in a BlockLiteral,
 # or as an argument in a statement
@@ -83,7 +83,7 @@ def _parse_group(tokens):
 					# Close group and push literal
 
 					if (not rules.check_group_symbols(stack[-1], token.body)):
-						raise CWParseError(f"Unexpected closing symbol '{token.body}'")
+						raise CWParseError(f"Unexpected closing symbol '{token.body}'", token.get_line())
 					else:
 						stack.pop()
 						if (not stack):
@@ -98,7 +98,7 @@ def _parse_group(tokens):
 							break
 
 		elif (_is_token(token, Token.GROUP_CLOSE)):
-			raise CWParseError(f"Unbalanced closing symbol '{token.body}'")
+			raise CWParseError(f"Unbalanced closing symbol '{token.body}'", token.get_line())
 		pos += 1
 
 	# Next, parse expressions and prefix operators from right to left
@@ -121,11 +121,11 @@ def _parse_group(tokens):
 				try:
 					argument = tokens.pop(pos)
 				except IndexError:
-					raise CWParseError(f"Expression '{expression[0].body}' is missing argument(s)")
+					raise CWParseError(f"Expression '{expression[0].body}' is missing argument(s)", expression[0].get_line())
 				if (_is_token(argument, Token.FREE_TYPE)):
 					argument = _parse_free_type(argument)
 				expression.append(argument)
-			tokens.insert(pos, ExpressionLiteral())
+			tokens.insert(pos, ExpressionLiteral(expression[0].get_line()))
 
 		# Group prefix operator with successive operand
 
@@ -134,10 +134,10 @@ def _parse_group(tokens):
 			try:
 				operand = tokens.pop(pos)
 			except IndexError:
-				raise CWParseError(f"Prefix operator '{token.body}' is missing operand")
+				raise CWParseError(f"Prefix operator '{token.body}' is missing operand", token.get_line())
 			if (_is_token(operand, Token.FREE_TYPE)):
 				operand = _parse_free_type(operand)
-			tokens.insert(pos, ExpressionLiteral())
+			tokens.insert(pos, ExpressionLiteral(token.get_line()))
 
 		pos -= 1
 
@@ -160,12 +160,12 @@ def _parse_group(tokens):
 					tokens.pop(pos)
 					operand_1 = tokens.pop(pos - 1)
 				except IndexError:
-					raise CWParseError(f"Binary operator '{token.body}' is missing operand(s)")
+					raise CWParseError(f"Binary operator '{token.body}' is missing operand(s)", token.get_line())
 				if (_is_token(operand_1, Token.FREE_TYPE)):
 					operand_1 = _parse_free_type(operand_1)
 				if (_is_token(operand_2, Token.FREE_TYPE)):
 					operand_2 = _parse_free_type(operand_2)
-				tokens.insert(pos, ExpressionLiteral())
+				tokens.insert(pos, ExpressionLiteral(token.get_line()))
 
 			pos += 1 if l_to_r else -1
 
@@ -176,9 +176,9 @@ def _parse_group(tokens):
 	# At this point, we should only have 1 remaining element, the tree root
 
 	if (len(tokens) == 0):
-		raise CWParseError("Empty group")
+		raise CWParseError("Empty group", None)
 	elif (len(tokens) >= 2):
-		raise CWParseError("Could not resolve group operation")
+		raise CWParseError("Could not resolve group operation", tokens[0].get_line())
 	if (_is_token(tokens[0], Token.FREE_TYPE)):
 		tokens[0] = _parse_free_type(tokens[0])
 
@@ -186,11 +186,11 @@ def _parse_group(tokens):
 
 def _parse_list(tokens):
 
-	return DynamicLiteral.parse("")
+	return DynamicLiteral.parse(tokens[0].get_line(), "")
 
 def _parse_free_type(token):
 
-	return DynamicLiteral.parse("")
+	return DynamicLiteral.parse(token.get_line(), "")
 
 # Type-safe method for checking if a value is a specific token
 

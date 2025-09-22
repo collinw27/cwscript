@@ -4,4 +4,10 @@
 
 class ScriptLiteral:
 
-	pass
+	def __init__(self, line):
+
+		self._line = line
+
+	def get_line(self):
+
+		return self._line

@@ -21,10 +21,11 @@ class Token:
 		"BINARY_OP"
 	]
 
-	def __init__(self, type_, body):
+	def __init__(self, type_, body, line):
 
 		self.type = type_
 		self.body = body
+		self._line = line
 
 	def __repr__(self):
 
@@ -37,3 +38,7 @@ class Token:
 	def __ne__(self, other):
 
 		return not self == other
+
+	def get_line(self):
+
+		return self._line

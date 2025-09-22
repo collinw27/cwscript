@@ -6,7 +6,7 @@ a **= 3;
 "string \"with\" escapes\\";
 
 print do {
-	if (2 / (1 + 3)) {
+	if (1 / (1 + 2)) {
 		print 1;
 	};
 };
