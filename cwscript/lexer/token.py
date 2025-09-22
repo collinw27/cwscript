@@ -30,4 +30,12 @@ class Token:
 
 	def __repr__(self):
 
-		return f"<{self._type_str[self.type]}> \"{self.body}\""
+		return f"<{self._type_str[self.type]}: '{self.body}'>"
+
+	def __eq__(self, other):
+
+		return self.type == other.type and self.body == other.body
+
+	def __ne__(self, other):
+
+		return not self == other

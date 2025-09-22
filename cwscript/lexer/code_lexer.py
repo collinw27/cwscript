@@ -114,6 +114,7 @@ def lex(code):
 
 				token += _c
 				_pop_char()
+
 			tokens.append(Token(Token.FREE_TYPE, token))
 			continue
 

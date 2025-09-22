@@ -33,6 +33,12 @@ def check_group_symbols(first, last):
 
 	return OPENING_GROUPINGS.index(first) == CLOSING_GROUPINGS.index(last)
 
+def assert_type(value, value_type):
+
+	if (not isinstance(value, value_type)):
+		raise RuntimeError("Type assertion failed for type %s" % value_type)
+	return value
+
 # Store definitions for operators and expressions
 
 _expressions = {}
