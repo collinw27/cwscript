@@ -2,18 +2,16 @@
 class Token:
 
 	EXPR_ROOT = 0
-	EXPR_KEYWORD = 1
-	FREE_TYPE = 2
-	GROUP_OPEN = 3
-	GROUP_CLOSE = 4
-	COMMA = 5
-	SEMICOLON = 6
-	PREFIX_OP = 7
-	BINARY_OP = 8
+	FREE_TYPE = 1
+	GROUP_OPEN = 2
+	GROUP_CLOSE = 3
+	COMMA = 4
+	SEMICOLON = 5
+	PREFIX_OP = 6
+	BINARY_OP = 7
 
 	_type_str = [
 		"E_ROOT",
-		"E_KWORD",
 		"FREE",
 		"G_OPEN",
 		"G_CLOSE",

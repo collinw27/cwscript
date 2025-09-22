@@ -57,7 +57,6 @@ def _parse_group(tokens):
 	# Insert the parsed literal at the start pointer
 	# Continue incrementing the start pointer as before
 
-	group = []
 	pos = 0
 	stack = []
 	while (pos < len(tokens)):
@@ -69,7 +68,7 @@ def _parse_group(tokens):
 		if (_is_token(token, Token.GROUP_OPEN)):
 			stack.append(token.body)
 			tokens.pop(pos)
-			group.append(token)
+			group = [token]
 			while (tokens[pos:]):
 
 				token = tokens.pop(pos)
@@ -96,16 +95,100 @@ def _parse_group(tokens):
 								tokens.insert(pos, _parse_list(group[1:-1]))
 							else:
 								raise RuntimeError("Invalid grouping type")
-							group = []
 							break
 
 		elif (_is_token(token, Token.GROUP_CLOSE)):
 			raise CWParseError(f"Unbalanced closing symbol '{token.body}'")
 		pos += 1
 
-	return ExpressionLiteral()
+	# Next, parse expressions and prefix operators from right to left
+	# Free type operands are parsed if necessary
+
+	pos = len(tokens) - 1
+	while (pos >= 0):
+
+		token = tokens[pos]
+
+		# Start reading expression
+		# This parsing method does not yet account for expressions
+		# that use keyword arguments
+
+		if (_is_token(token, Token.EXPR_ROOT)):
+			expression = []
+			tokens.pop(pos)
+			expression.append(token)
+			for i in range(rules.get_arg_count(token.body)):
+				try:
+					argument = tokens.pop(pos)
+				except IndexError:
+					raise CWParseError(f"Expression '{expression[0].body}' is missing argument(s)")
+				if (_is_token(argument, Token.FREE_TYPE)):
+					argument = _parse_free_type(argument)
+				expression.append(argument)
+			tokens.insert(pos, ExpressionLiteral())
+
+		# Group prefix operator with successive operand
+
+		elif (_is_token(token, Token.PREFIX_OP)):
+			tokens.pop(pos)
+			try:
+				operand = tokens.pop(pos)
+			except IndexError:
+				raise CWParseError(f"Prefix operator '{token.body}' is missing operand")
+			if (_is_token(operand, Token.FREE_TYPE)):
+				operand = _parse_free_type(operand)
+			tokens.insert(pos, ExpressionLiteral())
+
+		pos -= 1
+
+	# Parse binary operators
+	# Done group-by-group, starting with highest precedence
+	# Must take associativity into account when choosing direction to iterate
+
+	for op_group in rules.get_op_groups():
+		l_to_r, current_ops = op_group
+		pos = 0 if l_to_r else (len(tokens) - 1)
+		while ((pos < len(tokens)) if l_to_r else (pos >= 0)):
+
+			token = tokens[pos]
+
+			# Group operator with surrounding operands
+
+			if (_is_token(token, Token.BINARY_OP) and token.body in current_ops):
+				try:
+					operand_2 = tokens.pop(pos + 1)
+					tokens.pop(pos)
+					operand_1 = tokens.pop(pos - 1)
+				except IndexError:
+					raise CWParseError(f"Binary operator '{token.body}' is missing operand(s)")
+				if (_is_token(operand_1, Token.FREE_TYPE)):
+					operand_1 = _parse_free_type(operand_1)
+				if (_is_token(operand_2, Token.FREE_TYPE)):
+					operand_2 = _parse_free_type(operand_2)
+				tokens.insert(pos, ExpressionLiteral())
+
+			pos += 1 if l_to_r else -1
+
+	# Free types should've been parsed along with their
+	# respective operators/expressions
+	# The other possiblity is this group contained a single free type by itself
+	# In this case, parse the free type
+	# At this point, we should only have 1 remaining element, the tree root
+
+	if (len(tokens) == 0):
+		raise CWParseError("Empty group")
+	elif (len(tokens) >= 2):
+		raise CWParseError("Could not resolve group operation")
+	if (_is_token(tokens[0], Token.FREE_TYPE)):
+		tokens[0] = _parse_free_type(tokens[0])
+
+	return tokens[0]
 
 def _parse_list(tokens):
+
+	return DynamicLiteral.parse("")
+
+def _parse_free_type(token):
 
 	return DynamicLiteral.parse("")
 

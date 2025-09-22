@@ -131,7 +131,13 @@ def lex(code):
 				break
 			token += _c
 			_pop_char()
-		tokens.append(Token(Token.FREE_TYPE, token))
+
+		# Check if token matches a defined expression root
+
+		if (rules.is_expression(token)):
+			tokens.append(Token(Token.EXPR_ROOT, token))
+		else:
+			tokens.append(Token(Token.FREE_TYPE, token))
 
 	return tokens
 
