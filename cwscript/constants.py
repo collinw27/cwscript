@@ -5,6 +5,7 @@ WHITESPACE = list(" \n\t\r")
 QUOTES = list("'\"")
 OPENING_GROUPINGS = list("({[")
 CLOSING_GROUPINGS = list(")}]")
+BOOLS = ["true", "false"]
 NEWLINES = list('\n\r')
 
 ALPHA = list('abcdefghijklmnopqrstuvwxyz')

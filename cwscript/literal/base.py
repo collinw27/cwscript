@@ -11,3 +11,7 @@ class ScriptLiteral:
 	def get_line(self):
 
 		return self._line
+
+	def print_ast(self, nesting):
+
+		print(' ' * nesting + str(self))

@@ -1,8 +1,8 @@
 # asdf
 print max -1 2; #asdf
 print max (1 - 3) 2;
-a += 2;
-a **= 3;
+.a += 2;
+.a **= 3;
 "string \"with\" escapes\\";
 
 print do {
@@ -10,3 +10,5 @@ print do {
 		print 1;
 	};
 };
+
+pop 1 from .a;
