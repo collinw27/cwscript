@@ -10,21 +10,35 @@ def parse(code):
 	# Start by splitting the code into tokens
 
 	tokens = code_lexer.lex(code)
-	return _parse_block(tokens)
+	return _parse_block(0, tokens)
 
-# Returns a BlockLiteral containing an arbitrary number of statements
+# At their core, BlockLiteral and ListLiteral are composed of literals
+# delimited by separators (; or ,)
+# Thus, the same method is used for parsing them
+# One important difference: list literals need not have a trailing comma,
+# but statements in blocks must always end with semicolons
 
-def _parse_block(tokens):
+def _parse_block(line, tokens):
+
+	return _parse_block_or_list(line, tokens, True)
+
+def _parse_list(line, tokens):
+
+	return _parse_block_or_list(line, tokens, False)
+
+def _parse_block_or_list(line, tokens, is_block):
 
 	# Parse tokens statement-by-statement
 
+	separator = Token.SEMICOLON if is_block else Token.COMMA
 	statements = []
 	while (tokens):
-		this_statement = []
+
+		statement = []
 		stack = []
 		while (tokens):
 			token = tokens.pop(0)
-			this_statement.append(token)
+			statement.append(token)
 			if (token.type == Token.GROUP_OPEN):
 				stack.append(token.body)
 			elif (token.type == Token.GROUP_CLOSE):
@@ -34,19 +48,35 @@ def _parse_block(tokens):
 					raise CWParseError(f"Unexpected closing symbol '{token.body}'", token.get_line())
 				else:
 					stack.pop()
-			elif (token.type == Token.SEMICOLON):
+			elif (token.type == separator):
 				if (not stack):
 					break
-		if (this_statement[-1].type != Token.SEMICOLON):
-			raise CWParseError("Statement does not end with semicolon", this_statement[-1].get_line())
-		statements.append(_parse_group(this_statement[:-1]))
 
-	return BlockLiteral(statements[0].get_line(), statements)
+		# Make sure block statements end with semicolon
+		# List values may or may not have trailing comma
+		# In either case, the separator is removed
+
+		if (statement[-1].type != separator):
+			if (is_block):
+				raise CWParseError("Statement does not end with semicolon", line)
+		else:
+			statement = statement[:-1]
+		if (len(statement) == 0):
+			if (is_block):
+				raise CWParseError("Empty statement", line)
+			else:
+				raise CWParseError("Empty list value", line)
+		statements.append(_parse_group(statement[0].get_line(), statement))
+
+	if (is_block):
+		return BlockLiteral(line, statements)
+	else:
+		return ListLiteral(line, statements)
 
 # Returns a DynamicLiteral to be used in a BlockLiteral,
 # or as an argument in a statement
 
-def _parse_group(tokens):
+def _parse_group(line, tokens):
 
 	# Step 1. Parse groups within this group
 
@@ -88,11 +118,11 @@ def _parse_group(tokens):
 						stack.pop()
 						if (not stack):
 							if (group[0].body == '('):
-								tokens.insert(pos, _parse_group(group[1:-1]))
+								tokens.insert(pos, _parse_group(group[0].get_line(), group[1:-1]))
 							elif (group[0].body == '{'):
-								tokens.insert(pos, _parse_block(group[1:-1]))
+								tokens.insert(pos, _parse_block(group[0].get_line(), group[1:-1]))
 							elif (group[0].body == '['):
-								tokens.insert(pos, _parse_list(group[1:-1]))
+								tokens.insert(pos, _parse_list(group[0].get_line(), group[1:-1]))
 							else:
 								raise RuntimeError("Invalid grouping type")
 							break
@@ -101,7 +131,7 @@ def _parse_group(tokens):
 			raise CWParseError(f"Unbalanced closing symbol '{token.body}'", token.get_line())
 		pos += 1
 
-	# Next, parse expressions and prefix operators from right to left
+	# Step 2. Parse expressions and prefix operators from right to left
 	# Free type operands are parsed if necessary
 
 	pos = len(tokens) - 1
@@ -161,7 +191,7 @@ def _parse_group(tokens):
 
 		pos -= 1
 
-	# Parse binary operators
+	# Step 3. Parse binary operators
 	# Done group-by-group, starting with highest precedence
 	# Must take associativity into account when choosing direction to iterate
 
@@ -188,6 +218,7 @@ def _parse_group(tokens):
 				if not (isinstance(operand_1, DynamicLiteral) and isinstance(operand_2, DynamicLiteral)):
 					raise CWParseError(f"Invalid dynamic literal for operator '{token.body}'", token.get_line())
 				operator_class = rules.get_binary_op_class(token.body)
+				pos -= 1
 				tokens.insert(pos, operator_class(token.get_line(), {'operand_1': operand_1, 'operand_2': operand_2}))
 
 			pos += 1 if l_to_r else -1
@@ -199,17 +230,13 @@ def _parse_group(tokens):
 	# At this point, we should only have 1 remaining element, the tree root
 
 	if (len(tokens) == 0):
-		raise CWParseError("Empty group", None)
+		raise CWParseError("Empty group", line)
 	elif (len(tokens) >= 2):
-		raise CWParseError("Could not resolve group operation", tokens[0].get_line())
+		raise CWParseError("Could not resolve group operation", line)
 	if (_is_token(tokens[0], Token.FREE_TYPE)):
 		tokens[0] = _parse_free_type(tokens[0])
 
 	return tokens[0]
-
-def _parse_list(tokens):
-
-	return ListLiteral(tokens[0].get_line(), [])
 
 def _parse_free_type(token):
 

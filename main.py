@@ -10,6 +10,7 @@ if (__name__ == '__main__'):
 	else:
 		code = open(sys.argv[1]).read()
 	print(code)
+	print()
 	code_runner = CodeRunner(code)
 
 	print_ast(code_runner.main)

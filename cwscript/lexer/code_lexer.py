@@ -25,7 +25,7 @@ def lex(code):
 		# Ignore comments
 
 		if (_c == '#'):
-			while (_c not in NEWLINES):
+			while (_c != '' and _c not in NEWLINES):
 				_pop_char()
 			continue
 

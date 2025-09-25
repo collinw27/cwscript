@@ -5,10 +5,7 @@ print max (1 - 3) 2;
 .a **= 3;
 "string \"with\" escapes\\";
 
-print do {
-	if (1 / (1 + 2)) {
-		print 1;
-	};
-};
-
-pop 1 from .a;
+.a = [];
+do {};
+.a = [1, 2, 3 + 4, max 0 max (1 + 10) 2];
+1 += 3 * 5 / 6 * 7 + 2 && 3;
