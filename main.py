@@ -1,7 +1,6 @@
 import sys
 
 from cwscript.code_runner import CodeRunner
-from cwscript.testing.ast import *
 
 if (__name__ == '__main__'):
 
@@ -12,5 +11,3 @@ if (__name__ == '__main__'):
 	print(code)
 	print()
 	code_runner = CodeRunner(code)
-
-	print_ast(code_runner.main)

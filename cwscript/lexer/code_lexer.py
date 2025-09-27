@@ -133,9 +133,9 @@ def lex(code):
 			token += _c
 			_pop_char()
 
-		# Check if token matches a defined expression root
+		# Check if token matches a defined statement root
 
-		if (rules.is_expression(token)):
+		if (rules.is_statement(token)):
 			tokens.append(Token(Token.EXPR_ROOT, token, _line))
 		else:
 			tokens.append(Token(Token.FREE_TYPE, token, _line))

@@ -1,6 +1,6 @@
-from cwscript.literal.expression.base import *
+from cwscript.expression.statement.base import *
 
-class PrintExpression (ExpressionLiteral):
+class PrintStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -12,7 +12,7 @@ class PrintExpression (ExpressionLiteral):
 		super().print_ast(nesting)
 		self._value.print_ast(nesting + 1)
 
-class MaxExpression (ExpressionLiteral):
+class MaxStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -26,7 +26,7 @@ class MaxExpression (ExpressionLiteral):
 		self._value_1.print_ast(nesting + 1)
 		self._value_2.print_ast(nesting + 1)
 
-class IfStatementExpression (ExpressionLiteral):
+class IfStatementStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -40,7 +40,7 @@ class IfStatementExpression (ExpressionLiteral):
 		self._condition.print_ast(nesting + 1)
 		self._body.print_ast(nesting + 1)
 
-class DoStatementExpression (ExpressionLiteral):
+class DoStatementStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -52,7 +52,7 @@ class DoStatementExpression (ExpressionLiteral):
 		super().print_ast(nesting)
 		self._body.print_ast(nesting + 1)
 
-class ContainerPopExpression (ExpressionLiteral):
+class ContainerPopStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 

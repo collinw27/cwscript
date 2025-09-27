@@ -1,66 +1,66 @@
 from cwscript.constants import *
-from cwscript.literal import *
+from cwscript.expression import *
 
-# Importing the `literal` package here means that we cannot use
-# `rules` in any files that deal with literals
+# Importing the `expression` package here means that we cannot use
+# `rules` in any files that deal with expressions
 # This is not a problem for now, since `rules` is mostly useful
-# for the lexer/parser, but in the case that literals do need this
-# in the future, the expression/operator definitions should be moved
-# to a separate file to avoid importing `literal` here
+# for the lexer/parser, but in the case that expressions do need this
+# in the future, the statement/operator definitions should be moved
+# to a separate file to avoid importing `expression` here
 
 # EXPRESSIONS
 
 # Expression arguments are formatted as "name|type"
 # Expression arguments can take 3 categories of inputs:
-# 1) '*':      Dynamic literals (literals, expressions, operations)
-# 2) 'block':  Block literals (the only type of static literal)
-# 3) '_':      Keywords (specific to expression definition)
+# 1) '*':      Dynamic expressions (expressions, statements, operations)
+# 2) 'block':  Block statements (the only type of static statement)
+# 3) '_':      Keywords (specific to statement definition)
 
 ARG_DYNAMIC = 0
 ARG_BLOCK = 1
 ARG_KEYWORD = 2
 
-def _define_expression(root, arguments, expression_class):
+def _define_statement(root, arguments, statement_class):
 
-	global _expressions, _expression_args
-	_expressions[root] = expression_class
-	_expression_args[root] = []
+	global _statements, _statement_args
+	_statements[root] = statement_class
+	_statement_args[root] = []
 	for arg in arguments:
 		name, type_ = arg.split(': ')
 		type_ = ['*', 'block', '_'].index(type_)
-		_expression_args[root].append((name, type_))
+		_statement_args[root].append((name, type_))
 
-def is_expression(root):
+def is_statement(root):
 
-	return (root in _expressions)
+	return (root in _statements)
 
-def get_expression_class(root):
+def get_statement_class(root):
 
-	return _expressions[root]
+	return _statements[root]
 
 def get_arg_count(root):
 
-	return len(_expression_args[root])
+	return len(_statement_args[root])
 
 # Returns (name, ARG type)
 
 def get_arg(root, index):
 
-	return _expression_args[root][index]
+	return _statement_args[root][index]
 
-_expressions = {}
-_expression_args = {}
+_statements = {}
+_statement_args = {}
 
 # print [value: string]
-_define_expression('print', ['value: *'], PrintExpression)
+_define_statement('print', ['value: *'], PrintStatement)
 # max [value_1: int|float] [value_2: int|float]
-_define_expression('max', ['value_1: *', 'value_2: *'], MaxExpression)
+_define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
 # if [condition: *] [body: block]
-_define_expression('if', ['condition: *', 'body: block'], IfStatementExpression)
+_define_statement('if', ['condition: *', 'body: block'], IfStatementStatement)
 # do [body: block]
-_define_expression('do', ['body: block'], DoStatementExpression)
+_define_statement('do', ['body: block'], DoStatementStatement)
 # pop [index: int] from [container: *]
-_define_expression('pop', ['index: *', 'from: _', 'container: *'], ContainerPopExpression)
+_define_statement('pop', ['index: *', 'from: _', 'container: *'], ContainerPopStatement)
 
 # OPERATORS
 

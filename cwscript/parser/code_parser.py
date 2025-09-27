@@ -2,7 +2,7 @@ from cwscript.constants import *
 from cwscript.errors import *
 from cwscript.lexer import code_lexer
 from cwscript.lexer.token import Token
-from cwscript.literal import *
+from cwscript.expression import *
 from cwscript import rules
 
 def parse(code):
@@ -12,10 +12,10 @@ def parse(code):
 	tokens = code_lexer.lex(code)
 	return _parse_block(0, tokens)
 
-# At their core, BlockLiteral and ListLiteral are composed of literals
-# delimited by separators (; or ,)
+# At their core, BlockExpression and ListExpression are composed of
+# expressions delimited by separators (; or ,)
 # Thus, the same method is used for parsing them
-# One important difference: list literals need not have a trailing comma,
+# One important difference: list expressions need not have a trailing comma,
 # but statements in blocks must always end with semicolons
 
 def _parse_block(line, tokens):
@@ -69,11 +69,11 @@ def _parse_block_or_list(line, tokens, is_block):
 		statements.append(_parse_group(statement[0].get_line(), statement))
 
 	if (is_block):
-		return BlockLiteral(line, statements)
+		return BlockExpression(line, statements)
 	else:
-		return ListLiteral(line, statements)
+		return ListExpression(line, statements)
 
-# Returns a DynamicLiteral to be used in a BlockLiteral,
+# Returns a DynamicExpression to be used in a BlockExpression,
 # or as an argument in a statement
 
 def _parse_group(line, tokens):
@@ -84,7 +84,7 @@ def _parse_group(line, tokens):
 	# Move the start pointer through the group until an opening token is found
 	# Pop the token at the start pointer, modifying the stack if it's a group token
 	# Once the group is closed, parse it
-	# Insert the parsed literal at the start pointer
+	# Insert the parsed expression at the start pointer
 	# Continue incrementing the start pointer as before
 
 	pos = 0
@@ -110,7 +110,7 @@ def _parse_group(line, tokens):
 					stack.append(token.body)
 				elif (_is_token(token, Token.GROUP_CLOSE)):
 
-					# Close group and push literal
+					# Close group and push expression
 
 					if (not rules.check_group_symbols(stack[-1], token.body)):
 						raise CWParseError(f"Unexpected closing symbol '{token.body}'", token.get_line())
@@ -131,7 +131,7 @@ def _parse_group(line, tokens):
 			raise CWParseError(f"Unbalanced closing symbol '{token.body}'", token.get_line())
 		pos += 1
 
-	# Step 2. Parse expressions and prefix operators from right to left
+	# Step 2. Parse statements and prefix operators from right to left
 	# Free type operands are parsed if necessary
 
 	pos = len(tokens) - 1
@@ -139,7 +139,7 @@ def _parse_group(line, tokens):
 
 		token = tokens[pos]
 
-		# Start reading expression
+		# Start reading statement
 
 		if (_is_token(token, Token.EXPR_ROOT)):
 
@@ -150,28 +150,28 @@ def _parse_group(line, tokens):
 				try:
 					argument = tokens.pop(pos)
 				except IndexError:
-					raise CWParseError(f"Expression '{token.body}' is missing argument(s)", token.get_line())
+					raise CWParseError(f"Statement '{token.body}' is missing argument(s)", token.get_line())
 
-				# Attempt to parse into one of the three literal types
-				# At this point, `argument` can be a free type token, a dynamic literal, or a static literal
+				# Attempt to parse into one of the three expression types
+				# At this point, `argument` can be a free type token, a dynamic expression, or a static expression
 
 				arg_name, arg_type = rules.get_arg(token.body, i)
 				if (arg_type == rules.ARG_DYNAMIC):
 					if (_is_token(argument, Token.FREE_TYPE)):
 						argument = _parse_free_type(argument)
-					if (not isinstance(argument, DynamicLiteral)):
-						raise CWParseError(f"Invalid dynamic literal in expression '{token.body}'", token.get_line())
+					if (not isinstance(argument, DynamicExpression)):
+						raise CWParseError(f"Invalid dynamic expression in statement '{token.body}'", token.get_line())
 					arguments[arg_name] = argument
 				elif (arg_type == rules.ARG_KEYWORD):
 					if (not _is_token(argument, Token.FREE_TYPE) or argument.body != arg_name):
-						raise CWParseError(f"Expected keyword '{arg_name}' in expression '{token.body}'", token.get_line())
+						raise CWParseError(f"Expected keyword '{arg_name}' in statement '{token.body}'", token.get_line())
 				else:
-					if (not isinstance(argument, BlockLiteral)):
-						raise CWParseError(f"Invalid block in expression '{token.body}'", token.get_line())
+					if (not isinstance(argument, BlockExpression)):
+						raise CWParseError(f"Invalid block in statement '{token.body}'", token.get_line())
 					arguments[arg_name] = argument
 
-			expression_class = rules.get_expression_class(token.body)
-			tokens.insert(pos, expression_class(token.get_line(), arguments))
+			statement_class = rules.get_statement_class(token.body)
+			tokens.insert(pos, statement_class(token.get_line(), arguments))
 
 		# Group prefix operator with successive operand
 
@@ -184,8 +184,8 @@ def _parse_group(line, tokens):
 				raise CWParseError(f"Prefix operator '{token.body}' is missing operand", token.get_line())
 			if (_is_token(operand, Token.FREE_TYPE)):
 				operand = _parse_free_type(operand)
-			if (not isinstance(operand, DynamicLiteral)):
-				raise CWParseError(f"Invalid dynamic literal for operator '{token.body}'", token.get_line())
+			if (not isinstance(operand, DynamicExpression)):
+				raise CWParseError(f"Invalid operand for operator '{token.body}'", token.get_line())
 			operator_class = rules.get_prefix_op_class(token.body)
 			tokens.insert(pos, operator_class(token.get_line(), {'operand': operand}))
 
@@ -215,16 +215,15 @@ def _parse_group(line, tokens):
 					operand_1 = _parse_free_type(operand_1)
 				if (_is_token(operand_2, Token.FREE_TYPE)):
 					operand_2 = _parse_free_type(operand_2)
-				if not (isinstance(operand_1, DynamicLiteral) and isinstance(operand_2, DynamicLiteral)):
-					raise CWParseError(f"Invalid dynamic literal for operator '{token.body}'", token.get_line())
+				if not (isinstance(operand_1, DynamicExpression) and isinstance(operand_2, DynamicExpression)):
+					raise CWParseError(f"Invalid operand for operator '{token.body}'", token.get_line())
 				operator_class = rules.get_binary_op_class(token.body)
 				pos -= 1
 				tokens.insert(pos, operator_class(token.get_line(), {'operand_1': operand_1, 'operand_2': operand_2}))
 
 			pos += 1 if l_to_r else -1
 
-	# Free types should've been parsed along with their
-	# respective operators/expressions
+	# Free types should've been parsed along with their respective operators/statements
 	# The other possiblity is this group contained a single free type by itself
 	# In this case, parse the free type
 	# At this point, we should only have 1 remaining element, the tree root
@@ -240,7 +239,7 @@ def _parse_group(line, tokens):
 
 def _parse_free_type(token):
 
-	return DynamicLiteral.parse(token.get_line(), token.body)
+	return DynamicExpression.parse(token.get_line(), token.body)
 
 # Type-safe method for checking if a value is a specific token
 

@@ -1,18 +1,18 @@
 from cwscript.constants import *
 from cwscript.errors import *
-from cwscript.literal.base import ScriptLiteral
+from cwscript.expression.base import ScriptExpression
 
-# A "dynamic literal" is any literal that can be evaluated at runtime
+# A "dynamic expression" is any code object that can be evaluated at runtime
 
-class DynamicLiteral (ScriptLiteral):
+class DynamicExpression (ScriptExpression):
 
-	# Converts a compile-time ScriptLiteral into a runtime-useable ScriptValue
+	# Converts a compile-time ScriptExpression into a runtime-useable ScriptValue
 
 	def evaluate(self, value_type, eval_vars = True):
 
 		pass
 
-	# Resolve an unknown type to a specific dynamic literal class
+	# Resolve an unknown type to a specific dynamic expression class
 	# The class' parse() methods are responsible for validating input,
 	# as the checks in this function are only able to rule out certain types
 
@@ -22,27 +22,27 @@ class DynamicLiteral (ScriptLiteral):
 		# This shouldn't be possible, but it's worth checking just in case
 
 		if (len(string) == 0):
-			raise CWParseError(f"Empty literal", line)
+			raise CWParseError(f"Empty expression", line)
 
 		# Search for type using process of elimination
 
 		if (string == "null"):
-			return NullLiteral.parse(line, string)
+			return NullExpression.parse(line, string)
 		elif (string in BOOLS):
-			return BoolLiteral.parse(line, string)
+			return BoolExpression.parse(line, string)
 		elif (string[0] == string[-1] and string[0] in QUOTES):
-			return StringLiteral.parse(line, string)
+			return StringExpression.parse(line, string)
 		elif (string[0] == "." or string[:7] == "global."):
-			return VariableLiteral.parse(line, string)
+			return VariableExpression.parse(line, string)
 		elif (string[0] in '1234567890-'):
 			if ('.' in string):
-				return FloatLiteral.parse(line, string)
+				return FloatExpression.parse(line, string)
 			else:
-				return IntLiteral.parse(line, string)
+				return IntExpression.parse(line, string)
 		else:
-			raise CWParseError(f"Unable to parse literal '{string}'", line)
+			raise CWParseError(f"Unable to parse expression '{string}'", line)
 
-class NullLiteral (DynamicLiteral):
+class NullExpression (DynamicExpression):
 
 	def __init__(self, line):
 
@@ -51,9 +51,9 @@ class NullLiteral (DynamicLiteral):
 	@staticmethod
 	def parse(line, string):
 
-		return NullLiteral(line)
+		return NullExpression(line)
 
-class BoolLiteral (DynamicLiteral):
+class BoolExpression (DynamicExpression):
 
 	def __init__(self, line, value):
 
@@ -65,9 +65,9 @@ class BoolLiteral (DynamicLiteral):
 
 		if (string not in BOOLS):
 			raise CWParseError(f"Invalid bool '{string}'", line)
-		return BoolLiteral(line, string == "true")
+		return BoolExpression(line, string == "true")
 
-class IntLiteral (DynamicLiteral):
+class IntExpression (DynamicExpression):
 
 	def __init__(self, line, value):
 
@@ -93,9 +93,9 @@ class IntLiteral (DynamicLiteral):
 			if (len(string) == 1):
 				raise MCRParseError(f"Integer '{string}' missing numeric part", line)
 			string = string[1:]
-		return IntLiteral(line, int(string) * (-1 if is_negative else 1))
+		return IntExpression(line, int(string) * (-1 if is_negative else 1))
 
-class FloatLiteral (DynamicLiteral):
+class FloatExpression (DynamicExpression):
 
 	def __init__(self, line, value):
 
@@ -105,7 +105,7 @@ class FloatLiteral (DynamicLiteral):
 	@staticmethod
 	def parse(line, string):
 
-		# Similar to `IntLiteral.parse()`, but allows for a single decimal point
+		# Similar to `IntExpression.parse()`, but allows for a single decimal point
 		# This method technically accepts floats without a decimal point, although
 		# the parser should always resolve that to an integer
 		# TODO: Accept scientific notation
@@ -131,9 +131,9 @@ class FloatLiteral (DynamicLiteral):
 		elif (string[0] or string[-1]):
 			raise MCRParseError(f"Decimal cannot begin or end float, '{old_string}'", line)
 
-		return FloatLiteral(line, float(string) * (-1 if is_negative else 1))
+		return FloatExpression(line, float(string) * (-1 if is_negative else 1))
 
-class StringLiteral (DynamicLiteral):
+class StringExpression (DynamicExpression):
 
 	def __init__(self, line, value):
 
@@ -164,9 +164,9 @@ class StringLiteral (DynamicLiteral):
 				escaped = False
 			else:
 				value += c
-		return StringLiteral(value, line)
+		return StringExpression(value, line)
 
-class VariableLiteral (DynamicLiteral):
+class VariableExpression (DynamicExpression):
 
 	# Will need to be updated to include scope information
 
@@ -180,12 +180,12 @@ class VariableLiteral (DynamicLiteral):
 
 		if not (len(string) > 0 and (string[0] == '.' or string[:7] == 'global.')):
 			raise CWParseError(f"Invalid variable '{string}'", line)
-		return VariableLiteral(line, string)
+		return VariableExpression(line, string)
 
-# List literals do not perform any parsing on their own
+# List expressions do not perform any parsing on their own
 # They rely on the parsed values from the parser
 
-class ListLiteral (DynamicLiteral):
+class ListExpression (DynamicExpression):
 
 	def __init__(self, line, values):
 

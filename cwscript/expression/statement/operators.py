@@ -1,6 +1,6 @@
-from cwscript.literal.expression.base import *
+from cwscript.expression.statement.base import *
 
-class BinaryOperatorExpression (ExpressionLiteral):
+class BinaryOperatorExpression (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -112,7 +112,7 @@ class OperatorAssignExponentExpression (BinaryOperatorExpression):
 
 	pass
 
-class PrefixOperatorExpression (ExpressionLiteral):
+class PrefixOperatorExpression (StatementExpression):
 
 	def __init__(self, line, inputs):
 
