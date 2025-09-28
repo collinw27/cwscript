@@ -176,6 +176,7 @@ def _parse_group(line, tokens):
 		# Group prefix operator with successive operand
 
 		elif (_is_token(token, Token.PREFIX_OP)):
+
 			operator = token
 			tokens.pop(pos)
 			try:
@@ -186,8 +187,18 @@ def _parse_group(line, tokens):
 				operand = _parse_free_type(operand)
 			if (not isinstance(operand, DynamicExpression)):
 				raise CWParseError(f"Invalid operand for operator '{token.body}'", token.get_line())
+
+			# Special case: negation applied to an IntExpression or FloatExpression
+			# will be grouped into a single Int-/FloatExpression:
+
 			operator_class = rules.get_prefix_op_class(token.body)
-			tokens.insert(pos, operator_class(token.get_line(), {'operand': operand}))
+			if (operator_class is OperatorNegativeExpression and
+				(isinstance(operand, IntExpression) or isinstance(operand, FloatExpression))
+			):
+				token_to_insert = operand.negate()
+			else:
+				token_to_insert = operator_class(token.get_line(), {'operand': operand})
+			tokens.insert(pos, token_to_insert)
 
 		pos -= 1
 

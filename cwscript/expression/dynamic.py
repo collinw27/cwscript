@@ -95,6 +95,11 @@ class IntExpression (DynamicExpression):
 			string = string[1:]
 		return IntExpression(line, int(string) * (-1 if is_negative else 1))
 
+	def negate(self):
+
+		self._value *= -1
+		return self
+
 class FloatExpression (DynamicExpression):
 
 	def __init__(self, line, value):
@@ -132,6 +137,11 @@ class FloatExpression (DynamicExpression):
 			raise MCRParseError(f"Decimal cannot begin or end float, '{old_string}'", line)
 
 		return FloatExpression(line, float(string) * (-1 if is_negative else 1))
+
+	def negate(self):
+
+		self._value *= -1
+		return self
 
 class StringExpression (DynamicExpression):
 

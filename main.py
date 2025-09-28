@@ -10,4 +10,9 @@ if (__name__ == '__main__'):
 		code = open(sys.argv[1]).read()
 	print(code)
 	print()
+
 	code_runner = CodeRunner(code)
+	while (not code_runner.has_finished()):
+		code_runner.run_next()
+
+	print("[Program finished with exit code 0]")

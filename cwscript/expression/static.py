@@ -9,3 +9,12 @@ class BlockExpression (ScriptExpression):
 
 		super().__init__(line)
 		self._expression_list = expression_list
+
+	def run_statement(self, index):
+
+		if (index < len(self._expression_list)):
+			print("Running", self._expression_list[index])
+
+	def size(self):
+
+		return len(self._expression_list)
