@@ -1,6 +1,4 @@
 
-# Represents an error that I'm too lazy to categorize
-
 class CWError (Exception):
 
     def __init__(self, type_, message, line):
@@ -37,3 +35,11 @@ class CWParseError (CWError):
     def __init__(self, message, line):
 
         super().__init__("Parse error", message, line)
+
+# Represents an error that I'm too lazy to categorize
+
+class CWMiscError (CWError):
+
+    def __init__(self, message, line):
+
+        super().__init__("Error", message, line)

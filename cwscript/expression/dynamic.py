@@ -1,16 +1,23 @@
 from cwscript.constants import *
 from cwscript.errors import *
 from cwscript.expression.base import ScriptExpression
+from cwscript.value import *
 
 # A "dynamic expression" is any code object that can be evaluated at runtime
 
 class DynamicExpression (ScriptExpression):
 
-	# Converts a compile-time ScriptExpression into a runtime-useable ScriptValue
+	# Converts a compile-time ScriptExpression into a runtime-usable ScriptValue
+	# Children should overwrite `_evaluate()`, since this method serves
+	# as a wrapper that performs runtime type-checking
 
-	def evaluate(self, value_type, eval_vars = True):
+	def evaluate(self, runner, value_type, eval_vars = True):
 
-		pass
+		return self._evaluate(runner, eval_vars)
+
+	def _evaluate(self, runner, eval_vars):
+
+		return NullValue(runner)
 
 	# Resolve an unknown type to a specific dynamic expression class
 	# The class' parse() methods are responsible for validating input,
