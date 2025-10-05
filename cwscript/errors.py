@@ -36,6 +36,12 @@ class CWParseError (CWError):
 
         super().__init__("Parse error", message, line)
 
+class CWRuntimeError (CWError):
+
+    def __init__(self, message, line):
+
+        super().__init__("Runtime error", message, line)
+
 # Represents an error that I'm too lazy to categorize
 
 class CWMiscError (CWError):

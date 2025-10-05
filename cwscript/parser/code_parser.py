@@ -58,7 +58,7 @@ def _parse_block_or_list(line, tokens, is_block):
 
 		if (statement[-1].type != separator):
 			if (is_block):
-				raise CWParseError("Statement does not end with semicolon", line)
+				raise CWParseError("Statement does not end with semicolon", statement[-1].get_line())
 		else:
 			statement = statement[:-1]
 		if (len(statement) == 0):

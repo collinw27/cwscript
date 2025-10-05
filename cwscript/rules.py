@@ -56,11 +56,9 @@ _define_statement('print', ['value: *'], PrintStatement)
 # max [value_1: int|float] [value_2: int|float]
 _define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
 # if [condition: *] [body: block]
-_define_statement('if', ['condition: *', 'body: block'], IfStatementStatement)
+_define_statement('if', ['condition: *', 'body: block'], IfStatement)
 # do [body: block]
-_define_statement('do', ['body: block'], DoStatementStatement)
-# pop [index: int] from [container: *]
-_define_statement('pop', ['index: *', 'from: _', 'container: *'], ContainerPopStatement)
+_define_statement('do', ['body: block'], DoStatement)
 
 # OPERATORS
 
@@ -127,9 +125,3 @@ _define_prefix_op('!!', OperatorInvertExpression)
 def check_group_symbols(first, last):
 
 	return OPENING_GROUPINGS.index(first) == CLOSING_GROUPINGS.index(last)
-
-def assert_type(value, value_type):
-
-	if (not isinstance(value, value_type)):
-		raise RuntimeError("Type assertion failed for type %s" % value_type)
-	return value

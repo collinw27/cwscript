@@ -13,11 +13,11 @@ class DynamicExpression (ScriptExpression):
 
 	def evaluate(self, runner, value_type, eval_vars = True):
 
-		return self._evaluate(runner, eval_vars)
+		return runner.assert_type(self._evaluate(runner, eval_vars), value_type)
 
 	def _evaluate(self, runner, eval_vars):
 
-		return NullValue(runner)
+		raise NotImplementedError()
 
 	# Resolve an unknown type to a specific dynamic expression class
 	# The class' parse() methods are responsible for validating input,
@@ -55,6 +55,10 @@ class NullExpression (DynamicExpression):
 
 		super().__init__(line)
 
+	def _evaluate(self, runner, eval_vars):
+
+		return NullValue(runner)
+
 	@staticmethod
 	def parse(line, string):
 
@@ -65,7 +69,11 @@ class BoolExpression (DynamicExpression):
 	def __init__(self, line, value):
 
 		super().__init__(line)
-		self._value = assert_type(value, bool)
+		self._value = value
+
+	def _evaluate(self, runner, eval_vars):
+
+		return IntValue(runner, 1 if self._value else 0)
 
 	@staticmethod
 	def parse(line, string):
@@ -80,6 +88,10 @@ class IntExpression (DynamicExpression):
 
 		super().__init__(line)
 		self._value = value
+
+	def _evaluate(self, runner, eval_vars):
+
+		return IntValue(runner, self._value)
 
 	@staticmethod
 	def parse(line, string):
@@ -113,6 +125,10 @@ class FloatExpression (DynamicExpression):
 
 		super().__init__(line)
 		self._value = value
+
+	def _evaluate(self, runner, eval_vars):
+
+		return FloatValue(runner, self._value)
 
 	@staticmethod
 	def parse(line, string):
@@ -157,6 +173,10 @@ class StringExpression (DynamicExpression):
 		super().__init__(line)
 		self._value = value
 
+	def _evaluate(self, runner, eval_vars):
+
+		return StringValue(runner, self._value)
+
 	@staticmethod
 	def parse(line, string):
 
@@ -181,7 +201,7 @@ class StringExpression (DynamicExpression):
 				escaped = False
 			else:
 				value += c
-		return StringExpression(value, line)
+		return StringExpression(line, value)
 
 class VariableExpression (DynamicExpression):
 
@@ -191,6 +211,10 @@ class VariableExpression (DynamicExpression):
 
 		super().__init__(line)
 		self._value = value
+
+	def _evaluate(self, runner, eval_vars):
+
+		return NullValue(runner)
 
 	@staticmethod
 	def parse(line, string):
@@ -208,3 +232,7 @@ class ListExpression (DynamicExpression):
 
 		super().__init__(line)
 		self._values = values
+
+	def _evaluate(self, runner, eval_vars):
+
+		return NullValue(runner)

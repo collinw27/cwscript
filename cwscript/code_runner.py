@@ -43,6 +43,14 @@ class CodeRunner:
 
 		return self._stack[-1].get_line()
 
+	# Throws an error if an expression receives an incorrect type
+
+	def assert_type(self, value, value_type):
+
+		if (not isinstance(value, value_type)):
+			raise CWRuntimeError("Type assertion failed for %s with type %s" % (value, value_type), self.get_line())
+		return value
+
 	# A wrapper to print debug info when an error is encountered
 
 	def _handle_error(self, error):

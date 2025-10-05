@@ -1,4 +1,5 @@
 from cwscript.expression.base import ScriptExpression
+from cwscript.value import *
 
 # Blocks are the only "static" expression type,
 # which cannot be evaluated on its own at runtime
@@ -13,8 +14,7 @@ class BlockExpression (ScriptExpression):
 	def run_expression(self, index, runner):
 
 		if (index < len(self._expression_list)):
-			print("Running", self._expression_list[index])
-			self._expression_list[index].evaluate(runner, None)
+			self._expression_list[index].evaluate(runner, ScriptValue)
 
 	def get_expression_line(self, index):
 

@@ -10,7 +10,8 @@ class PrintStatement (StatementExpression):
 
 	def _evaluate(self, runner, eval_vars):
 
-		print(self._value.evaluate(runner, ScriptValue).to_string())
+		print(self._value.evaluate(runner, ScriptValue).to_string(runner))
+		return NullValue(runner)
 
 class MaxStatement (StatementExpression):
 
@@ -20,7 +21,13 @@ class MaxStatement (StatementExpression):
 		self._value_1 = inputs['value_1']
 		self._value_2 = inputs['value_2']
 
-class IfStatementStatement (StatementExpression):
+	def _evaluate(self, runner, eval_vars):
+
+		value_1 = self._value_1.evaluate(runner, NumericValue)
+		value_2 = self._value_2.evaluate(runner, NumericValue)
+		return value_1 if (value_1.get_value() > value_2.get_value()) else value_2
+
+class IfStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -28,7 +35,18 @@ class IfStatementStatement (StatementExpression):
 		self._condition = inputs['condition']
 		self._body = inputs['body']
 
-class DoStatementStatement (StatementExpression):
+	def _evaluate(self, runner, eval_vars):
+
+		condition = self._condition.evaluate(runner, ScriptValue).to_bool(runner)
+
+		# Only run the body if the condition is true
+		# Return a bool representing whether the body was run or not
+
+		if (condition):
+			runner.push_block(self._body)
+		return IntValue(runner, int(condition))
+
+class DoStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
@@ -40,11 +58,4 @@ class DoStatementStatement (StatementExpression):
 	def _evaluate(self, runner, eval_vars):
 
 		runner.push_block(self._body)
-
-class ContainerPopStatement (StatementExpression):
-
-	def __init__(self, line, inputs):
-
-		super().__init__(line)
-		self._index = inputs['index']
-		self._container = inputs['container']
+		return IntValue(runner, 1)
