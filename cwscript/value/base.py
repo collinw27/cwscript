@@ -17,7 +17,7 @@ class ScriptValue:
 
 	# Returns whether two values are equal
 
-	def is_equal(self, other, runner):
+	def is_equal(self, runner, other):
 
 		raise NotImplementedError()
 

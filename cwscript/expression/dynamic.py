@@ -207,21 +207,35 @@ class VariableExpression (DynamicExpression):
 
 	# Will need to be updated to include scope information
 
-	def __init__(self, line, value):
+	def __init__(self, line, is_global, value):
 
 		super().__init__(line)
+		self._is_global = is_global
 		self._value = value
 
 	def _evaluate(self, runner, eval_vars):
 
-		return NullValue(runner)
+		if (self._is_global):
+			parent = runner.get_global_scope()
+		else:
+			parent = runner.get_function_scope()
+
+		var_value = VariableValue(runner, parent, self._value)
+		if (eval_vars):
+			return var_value.get_var_value(runner)
+		else:
+			return var_value
 
 	@staticmethod
 	def parse(line, string):
 
 		if not (len(string) > 0 and (string[0] == '.' or string[:7] == 'global.')):
 			raise CWParseError(f"Invalid variable '{string}'", line)
-		return VariableExpression(line, string)
+		is_global = (string[:7] == 'global.')
+		value = string[7:] if is_global else string[1:]
+		if (len([c for c in value if c not in VAR_ALLOWED]) > 0):
+			raise CWParseError(f"Invalid variable '{string}'", line)
+		return VariableExpression(line, is_global, value)
 
 # List expressions do not perform any parsing on their own
 # They rely on the parsed values from the parser

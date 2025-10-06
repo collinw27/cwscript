@@ -1,6 +1,7 @@
 from cwscript.constants import *
 from cwscript.errors import *
 from cwscript.parser import code_parser
+from cwscript.value import *
 from cwscript import rules
 
 class CodeRunner:
@@ -14,6 +15,7 @@ class CodeRunner:
 			self._handle_error(error)
 
 		self._stack = [_BlockInstance(self._main)]
+		self._scopes = [ObjectValue(self)]
 
 	# Keep trying to run a block until an expression is found
 	# This function assumes the state is correct,
@@ -42,6 +44,14 @@ class CodeRunner:
 	def get_line(self):
 
 		return self._stack[-1].get_line()
+
+	def get_global_scope(self):
+
+		return self._scopes[0]
+
+	def get_function_scope(self):
+		
+		return self._scopes[-1]
 
 	# Throws an error if an expression receives an incorrect type
 

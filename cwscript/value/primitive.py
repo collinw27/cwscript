@@ -10,7 +10,7 @@ class NullValue (ScriptValue):
 
 		return "null"
 
-	def is_equal(self, other, runner):
+	def is_equal(self, runner, other):
 
 		return (isinstance(other, NullValue))
 
@@ -43,7 +43,7 @@ class IntValue (NumericValue):
 
 		return str(self._value)
 
-	def is_equal(self, other, runner):
+	def is_equal(self, runner, other):
 
 		return ((isinstance(other, IntValue) or isinstance(other, FloatValue))
 			and self.get_value() == other.get_value())
@@ -67,7 +67,7 @@ class FloatValue (NumericValue):
 
 		return str(self._value)
 
-	def is_equal(self, other, runner):
+	def is_equal(self, runner, other):
 
 		return ((isinstance(other, IntValue) or isinstance(other, FloatValue))
 			and self.get_value() == other.get_value())
@@ -94,10 +94,33 @@ class StringValue (ScriptValue):
 
 		return str(self._value) if isolated else f'"{self._value}"'
 
-	def is_equal(self, other, runner):
+	def is_equal(self, runner, other):
 
 		return (isinstance(other, StringValue) and self.get_value() == other.get_value())
 
 	def to_bool(self, runner):
 
 		return len(self._value) > 0
+
+class VariableValue (ScriptValue):
+
+	def __init__(self, runner, parent, field):
+
+		self._parent = parent
+		self._field = field
+
+	def set_var_value(self, runner, value):
+
+		self._parent.set_field(runner, self._field, value)
+
+	def get_var_value(self, runner):
+
+		return self._parent.get_field(runner, self._field)
+
+	def to_string(self, runner, isolated = True):
+
+		return f"VAR:0x{self._id:0x}"
+
+	def is_equal(self, runner, other):
+
+		return other._id == self._id

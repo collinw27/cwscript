@@ -123,7 +123,12 @@ class OperatorOrExpression (BinaryOperatorExpression):
 
 class OperatorAssignExpression (BinaryOperatorExpression):
 
-	pass
+	def _evaluate(self, runner, eval_vars):
+
+		operand_1 = self._operand_1.evaluate(runner, VariableValue, False)
+		operand_2 = self._operand_2.evaluate(runner, ScriptValue)
+		operand_1.set_var_value(runner, operand_2)
+		return operand_1
 
 class OperatorAssignAddExpression (BinaryOperatorExpression):
 
