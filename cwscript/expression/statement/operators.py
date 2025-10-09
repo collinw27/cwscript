@@ -51,7 +51,31 @@ class OperatorIndexExpression (BinaryOperatorExpression):
 
 class OperatorCallExpression (BinaryOperatorExpression):
 
-	pass
+	def _evaluate(self, runner, eval_vars):
+
+		func = self._operand_1.evaluate(runner, FunctionValue)
+		arg_values = self._operand_2.evaluate(runner, ListValue).get_list()
+
+		# The number of arguments must match the number of parameters in the definition
+
+		parameters = func.get_parameters(runner)
+		if (len(parameters) != len(arg_values)):
+			raise CWRuntimeError("Wrong number of arguments for function call", runner.get_line())
+
+		# Create a new variable scope, and initialize the function's variables within it
+
+		scope = ObjectValue(runner)
+		for i in range(len(parameters)):
+			scope.set_field(runner, parameters[i], arg_values[i])
+		runner.add_function_scope(scope)
+
+		# Run the function's body
+
+		runner.push_block(func.get_body())
+
+		# Return none for now (error: will need to rewrite evaluation order)
+
+		return NullValue(runner)
 
 class OperatorExponentExpression (BinaryOperatorExpression):
 

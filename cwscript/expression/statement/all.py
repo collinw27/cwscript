@@ -1,4 +1,5 @@
 from cwscript.expression.statement.base import *
+from cwscript.expression.dynamic import *
 from cwscript.value import *
 
 class PrintStatement (StatementExpression):
@@ -59,3 +60,33 @@ class DoStatement (StatementExpression):
 
 		runner.push_block(self._body)
 		return IntValue(runner, 1)
+
+# In the previous iteration of this project
+# functions were automatically 'bound' to the current object
+# Since I'm not sure how 'binding' functions will work in the future,
+# they're left out of this class for now
+
+class FunctionStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+		self._parameters = inputs['parameters']
+		self._body = inputs['body']
+
+	def _evaluate(self, runner, eval_vars):
+
+		# Parsing the function parameters is weird because it's essentially a hack
+		# In the definition, you write the parameters as a list:
+		# [.param_a, .param_b, .param_c]
+		# But due to the nature of expressions, the list is evaluated at the time
+		# of the function declaration, so these variables names are technically bound
+		# to the scope that this statement is run within
+
+		# Instead, the parameters are stored as strings and passed to the FunctionValue
+		# A special method of ListExpression is used to do this
+
+		if (not isinstance(self._parameters, ListExpression)):
+			raise CWRuntimeError("Could not evaluate function parameter list", self._parameters.get_line())
+		parameters = self._parameters.eval_as_parameters(runner)
+		return FunctionValue(runner, parameters, self._body)

@@ -1,3 +1,4 @@
+from cwscript.errors import *
 from cwscript.value.base import ScriptValue
 
 class NullValue (ScriptValue):
@@ -45,8 +46,7 @@ class IntValue (NumericValue):
 
 	def is_equal(self, runner, other):
 
-		return ((isinstance(other, IntValue) or isinstance(other, FloatValue))
-			and self.get_value() == other.get_value())
+		return (isinstance(other, NumericValue) and self.get_value() == other.get_value())
 
 	def to_bool(self, runner):
 
@@ -69,8 +69,7 @@ class FloatValue (NumericValue):
 
 	def is_equal(self, runner, other):
 
-		return ((isinstance(other, IntValue) or isinstance(other, FloatValue))
-			and self.get_value() == other.get_value())
+		return (isinstance(other, NumericValue) and self.get_value() == other.get_value())
 
 	# Could maybe use an epsilon here, but in general,
 	# checking for float equality isn't a great idea
@@ -117,9 +116,20 @@ class VariableValue (ScriptValue):
 
 		return self._parent.get_field(runner, self._field)
 
+	def extract_parameter_name(self, runner):
+
+		# print(self._parent, runner.get_function_scope())
+		if (self._parent != runner.get_function_scope()):
+			raise CWRuntimeError(f"Invalid scope for parameter: {self._field}", runner.get_line())
+		if not (isinstance(self._field, str)):
+			raise CWRuntimeError(f"Parameter should not be numeric: {self._field}", runner.get_line())
+		return self._field
+
 	def to_string(self, runner, isolated = True):
 
 		return f"VAR:0x{self._id:0x}"
+
+	# Type check is not needed when comparing IDs directly
 
 	def is_equal(self, runner, other):
 

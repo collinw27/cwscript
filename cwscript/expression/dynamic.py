@@ -247,6 +247,22 @@ class ListExpression (DynamicExpression):
 		super().__init__(line)
 		self._values = values
 
+	# `eval_vars` is passed into `evaluate()` to account for function parameter names
+
 	def _evaluate(self, runner, eval_vars):
 
-		return NullValue(runner)
+		list_value = ListValue(runner)
+		for value in self._values:
+			list_value.get_list().append(value.evaluate(runner, ScriptValue, eval_vars))
+		return list_value
+
+	def eval_as_parameters(self, runner):
+
+		output = []
+		for expression in self._values:
+			if (not isinstance(expression, VariableExpression)):
+				raise CWRuntimeError("Could not evaluate function parameter", self._parameters.get_line())
+			var = expression.evaluate(runner, VariableValue, False).extract_parameter_name(runner)
+			output.append(var)
+		print("Parameters:", output)
+		return output

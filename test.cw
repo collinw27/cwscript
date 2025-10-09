@@ -1,4 +1,6 @@
-# asdf
-.a = 3;
-print .a;
-# print .b;
+
+.func = function [.a, .b] {
+	print (.a + .b);
+};
+
+.func -> [3, 5];

@@ -53,6 +53,10 @@ class CodeRunner:
 		
 		return self._scopes[-1]
 
+	def add_function_scope(self, scope):
+
+		self._scopes.append(scope)
+
 	# Throws an error if an expression receives an incorrect type
 
 	def assert_type(self, value, value_type):

@@ -16,10 +16,11 @@ class ScriptValue:
 		raise CWMiscError("Cannot cast to string", runner.get_line())
 
 	# Returns whether two values are equal
+	# When unspecified, check if they are the same object
 
 	def is_equal(self, runner, other):
 
-		raise NotImplementedError()
+		return (self._id == other._id)
 
 	# Casts a value to a boolean
 	# Most non-null values return true no matter what

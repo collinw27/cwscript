@@ -59,6 +59,8 @@ _define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
 _define_statement('if', ['condition: *', 'body: block'], IfStatement)
 # do [body: block]
 _define_statement('do', ['body: block'], DoStatement)
+# function [parameters: list] [body: block]
+_define_statement('function', ['parameters: *', 'body: block'], FunctionStatement)
 
 # OPERATORS
 
