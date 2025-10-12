@@ -4,7 +4,6 @@ from cwscript import rules
 from cwscript.parser import code_parser
 from cwscript.value import *
 from cwscript.expression import *
-from cwscript.testing.stack import print_stack
 
 # In this project, 'runner' is used synonymously with 'evaluator'
 
@@ -100,6 +99,8 @@ class CodeRunner:
 					value = item.evaluate(self, args)
 					if (isinstance(value, StackBlock)):
 						self._main_stack.insert(i + 1, value)
+					elif (isinstance(value, list)):
+						self._main_stack[i + 1: i + 1 + len(value)] = value
 					else:
 						self._main_stack[i : i + 1 + item.num_args] = [value]
 					break

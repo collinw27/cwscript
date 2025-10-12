@@ -53,8 +53,6 @@ class IfStatement (StatementExpression):
 
 	def get_stack(self, runner, value_type, eval_vars):
 
-		# Runs regardless of conditional, need short-circuit evaluation to fix
-
 		return [
 			StackValueRequest(self._condition, ScriptValue),
 			StackInterruptableOperation(self, 1, value_type, eval_vars, {'block': self._body})
@@ -90,6 +88,65 @@ class DoStatement (StatementExpression):
 	def evaluate(runner, args):
 
 		return IntValue(runner, 1)
+
+class WhileLoopStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+		self._condition = inputs['condition']
+		self._body = inputs['body']
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._condition, ScriptValue),
+			StackInterruptableOperation(self, 1, value_type, eval_vars, {'block': self._body, 'condition': self._condition})
+		]
+
+	@staticmethod
+	def evaluate(runner, args, state):
+
+		# Returns whether the block was run at least once
+
+		if (state.get('needs_eval', False)):
+			state['needs_eval'] = False
+			return [StackValueRequest(state['condition'], ScriptValue)]
+		elif (args[0].to_bool(runner)):
+			state['was_run'] = True
+			state['needs_eval'] = True
+			return StackBlock(state['block'])
+		else:
+			return IntValue(runner, int(state.get('was_run', False)))
+
+class ForLoopStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+		self._iterator = inputs['iterator']
+		self._list = inputs['list']
+		self._body = inputs['body']
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._iterator, VariableValue, False),
+			StackValueRequest(self._list, ListValue),
+			StackInterruptableOperation(self, 2, value_type, eval_vars, {'block': self._body, 'i': 0})
+		]
+
+	@staticmethod
+	def evaluate(runner, args, state):
+
+		# Returns whether the block was run at least once
+
+		if (state['i'] >= len(args[1].get_list())):
+			return IntValue(runner, int(state['i'] > 0))
+		else:
+			args[0].set_var_value(runner, args[1].get_list()[state['i']])
+			state['i'] += 1
+			return StackBlock(state['block'])
 
 # In the previous iteration of this project
 # functions were automatically 'bound' to the current object

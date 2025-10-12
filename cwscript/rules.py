@@ -59,6 +59,10 @@ _define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
 _define_statement('if', ['condition: *', 'body: block'], IfStatement)
 # do [body: block]
 _define_statement('do', ['body: block'], DoStatement)
+# while [condition: *] [body: block]
+_define_statement('while', ['condition: *', 'body: block'], WhileLoopStatement)
+# for [iterator: var] in [list: list] [body: block]
+_define_statement('for', ['iterator: *', 'in: _', 'list: *', 'body: block'], ForLoopStatement)
 # function [parameters: list] [body: block]
 _define_statement('function', ['parameters: *', 'body: block'], FunctionStatement)
 

@@ -1,13 +1,13 @@
 
-function [.a]
+.i = 5;
+while .i
 {
-	if (1 - .a)
-	{
-		print (.a + 1);
-	};
-}
--> [2];
+	.i = (.i - 1);
+	print .i;
+};
 
-print max 0 do {};
-
-# 1 + [2];
+print "";
+print for .j in [1, 2, 3, 4, 5]
+{
+	print .j;
+};

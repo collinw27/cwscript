@@ -63,11 +63,13 @@ class StackInterruptableOperation (StackOperation):
 
 	# Instead of a ScriptValue, a StackBlock can be returned
 	# to trigger an interrupt
+	# Alternatively, a list of ValueRequests can replace the values
+	# above this in the stack (ex for while loops)
 
 	def evaluate(self, runner, args):
 
 		value = self._op_class.evaluate(runner, args, self._state)
-		if (isinstance(value, StackBlock)):
+		if (isinstance(value, StackBlock) or isinstance(value, list)):
 			return value
 		if (isinstance(value, VariableValue) and self._eval_vars):
 			value = value.get_var_value(runner)
