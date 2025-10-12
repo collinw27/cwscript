@@ -9,9 +9,17 @@ class PrintStatement (StatementExpression):
 		super().__init__(line)
 		self._value = inputs['value']
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
-		print(self._value.evaluate(runner, ScriptValue).to_string(runner))
+		return [
+			StackValueRequest(self._value),
+			StackOperation(PrintStatement, 1, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		print(args[0].to_string(runner))
 		return NullValue(runner)
 
 class MaxStatement (StatementExpression):
@@ -22,11 +30,18 @@ class MaxStatement (StatementExpression):
 		self._value_1 = inputs['value_1']
 		self._value_2 = inputs['value_2']
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
-		value_1 = self._value_1.evaluate(runner, NumericValue)
-		value_2 = self._value_2.evaluate(runner, NumericValue)
-		return value_1 if (value_1.get_value() > value_2.get_value()) else value_2
+		return [
+			StackValueRequest(self._value_1),
+			StackValueRequest(self._value_2),
+			StackOperation(MaxStatement, 2, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		return args[0] if (args[0].get_value() > args[1].get_value()) else args[1]
 
 class IfStatement (StatementExpression):
 
@@ -36,16 +51,23 @@ class IfStatement (StatementExpression):
 		self._condition = inputs['condition']
 		self._body = inputs['body']
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
-		condition = self._condition.evaluate(runner, ScriptValue).to_bool(runner)
+		# Runs regardless of conditional, need short-circuit evaluation to fix
 
-		# Only run the body if the condition is true
-		# Return a bool representing whether the body was run or not
+		return [
+			StackValueRequest(self._condition),
+			StackInterruptableOperation(IfStatement, 1, eval_vars, {'block': self._body})
+		]
 
-		if (condition):
-			runner.push_block(self._body)
-		return IntValue(runner, int(condition))
+	@staticmethod
+	def evaluate(runner, args, state):
+
+		if (args[0].to_bool(runner) and state.get('waiting', True)):
+			state['waiting'] = False
+			return StackBlock(state['block'])
+		else:
+			return IntValue(runner, int(args[0].to_bool(runner)))
 
 class DoStatement (StatementExpression):
 
@@ -54,11 +76,19 @@ class DoStatement (StatementExpression):
 		super().__init__(line)
 		self._body = inputs['body']
 
-	# Evaluating simply runs the block
+	def get_stack(self, runner, eval_vars):
 
-	def _evaluate(self, runner, eval_vars):
+		# An InterruptableOperation isn't used since the block
+		# is run once and unconditionally, so no setup is needed
 
-		runner.push_block(self._body)
+		return [
+			StackBlock(self._body, True),
+			StackOperation(DoStatement, 1, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
 		return IntValue(runner, 1)
 
 # In the previous iteration of this project
@@ -74,7 +104,7 @@ class FunctionStatement (StatementExpression):
 		self._parameters = inputs['parameters']
 		self._body = inputs['body']
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
 		# Parsing the function parameters is weird because it's essentially a hack
 		# In the definition, you write the parameters as a list:
@@ -85,8 +115,10 @@ class FunctionStatement (StatementExpression):
 
 		# Instead, the parameters are stored as strings and passed to the FunctionValue
 		# A special method of ListExpression is used to do this
+		# Since there's no possibility of nested expressions, these can all be evaluated
+		# in this function call without being passed to `evaluate()`, just like a literal
 
 		if (not isinstance(self._parameters, ListExpression)):
 			raise CWRuntimeError("Could not evaluate function parameter list", self._parameters.get_line())
 		parameters = self._parameters.eval_as_parameters(runner)
-		return FunctionValue(runner, parameters, self._body)
+		return [StackValue(FunctionValue(runner, parameters, self._body))]

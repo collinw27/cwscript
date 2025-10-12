@@ -11,15 +11,8 @@ class BlockExpression (ScriptExpression):
 		super().__init__(line)
 		self._expression_list = expression_list
 
-	def run_expression(self, index, runner):
+	# Returns None if out of bounds
 
-		if (index < len(self._expression_list)):
-			self._expression_list[index].evaluate(runner, ScriptValue)
+	def get_expression(self, index):
 
-	def get_expression_line(self, index):
-
-		return self._expression_list[index].get_line()
-
-	def size(self):
-
-		return len(self._expression_list)
+		return self._expression_list[index] if index < len(self._expression_list) else None

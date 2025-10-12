@@ -118,7 +118,6 @@ class VariableValue (ScriptValue):
 
 	def extract_parameter_name(self, runner):
 
-		# print(self._parent, runner.get_function_scope())
 		if (self._parent != runner.get_function_scope()):
 			raise CWRuntimeError(f"Invalid scope for parameter: {self._field}", runner.get_line())
 		if not (isinstance(self._field, str)):

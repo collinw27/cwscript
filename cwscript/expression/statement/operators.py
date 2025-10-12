@@ -37,10 +37,6 @@ class BinaryOperatorExpression (StatementExpression):
 		self._operand_1 = inputs['operand_1']
 		self._operand_2 = inputs['operand_2']
 
-	def _evaluate(self, runner, eval_vars):
-
-		return NullValue(runner)
-
 class OperatorChainExpression (BinaryOperatorExpression):
 
 	pass
@@ -51,31 +47,47 @@ class OperatorIndexExpression (BinaryOperatorExpression):
 
 class OperatorCallExpression (BinaryOperatorExpression):
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
-		func = self._operand_1.evaluate(runner, FunctionValue)
-		arg_values = self._operand_2.evaluate(runner, ListValue).get_list()
+		return [
+			StackValueRequest(self._operand_1),
+			StackValueRequest(self._operand_2),
+			StackInterruptableOperation(OperatorCallExpression, 2, eval_vars)
+		]
 
-		# The number of arguments must match the number of parameters in the definition
+	@staticmethod
+	def evaluate(runner, args, state):
 
-		parameters = func.get_parameters(runner)
-		if (len(parameters) != len(arg_values)):
-			raise CWRuntimeError("Wrong number of arguments for function call", runner.get_line())
+		if (state.get('waiting', True)):
 
-		# Create a new variable scope, and initialize the function's variables within it
+			state['waiting'] = False
+			func = args[0]
+			arg_values = args[1].get_list()
 
-		scope = ObjectValue(runner)
-		for i in range(len(parameters)):
-			scope.set_field(runner, parameters[i], arg_values[i])
-		runner.add_function_scope(scope)
+			# The number of arguments must match the number of parameters in the definition
 
-		# Run the function's body
+			parameters = func.get_parameters(runner)
+			if (len(parameters) != len(arg_values)):
+				raise CWRuntimeError("Wrong number of arguments for function call", runner.get_line())
 
-		runner.push_block(func.get_body())
+			# Create a new variable scope, and initialize the function's variables within it
 
-		# Return none for now (error: will need to rewrite evaluation order)
+			scope = ObjectValue(runner)
+			for i in range(len(parameters)):
+				scope.set_field(runner, parameters[i], arg_values[i])
+			runner.add_function_scope(scope)
 
-		return NullValue(runner)
+			# Run the function's body
+
+			return StackBlock(func.get_body())
+
+		else:
+
+			runner.pop_function_scope()
+
+			# In the future, will add return values
+
+			return NullValue(runner)
 
 class OperatorExponentExpression (BinaryOperatorExpression):
 
@@ -99,19 +111,33 @@ class OperatorModulusExpression (BinaryOperatorExpression):
 
 class OperatorAddExpression (BinaryOperatorExpression):
 
-	def _evaluate(self, runner, eval_vars):
-		
-		operand_1 = self._operand_1.evaluate(runner, NumericValue)
-		operand_2 = self._operand_2.evaluate(runner, NumericValue)
-		return _op_add(runner, operand_1, operand_2)
+	def get_stack(self, runner, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1),
+			StackValueRequest(self._operand_2),
+			StackOperation(OperatorAddExpression, 2, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		return _op_add(runner, args[0], args[1])
 
 class OperatorSubtractExpression (BinaryOperatorExpression):
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1),
+			StackValueRequest(self._operand_2),
+			StackOperation(OperatorSubtractExpression, 2, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
 		
-		operand_1 = self._operand_1.evaluate(runner, NumericValue)
-		operand_2 = self._operand_2.evaluate(runner, NumericValue)
-		return _op_subtract(runner, operand_1, operand_2)
+		return _op_subtract(runner, args[0], args[1])
 
 class OperatorGreaterExpression (BinaryOperatorExpression):
 
@@ -147,12 +173,19 @@ class OperatorOrExpression (BinaryOperatorExpression):
 
 class OperatorAssignExpression (BinaryOperatorExpression):
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
-		operand_1 = self._operand_1.evaluate(runner, VariableValue, False)
-		operand_2 = self._operand_2.evaluate(runner, ScriptValue)
-		operand_1.set_var_value(runner, operand_2)
-		return operand_1
+		return [
+			StackValueRequest(self._operand_1, False),
+			StackValueRequest(self._operand_2),
+			StackOperation(OperatorAssignExpression, 2, eval_vars)
+		]	
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		args[0].set_var_value(runner, args[1])
+		return args[0]
 
 class OperatorAssignAddExpression (BinaryOperatorExpression):
 
@@ -188,10 +221,6 @@ class PrefixOperatorExpression (StatementExpression):
 
 		super().__init__(line)
 		self._operand = inputs['operand']
-
-	def _evaluate(self, runner, eval_vars):
-		
-		return NullValue(runner)
 
 class OperatorNegativeExpression (PrefixOperatorExpression):
 

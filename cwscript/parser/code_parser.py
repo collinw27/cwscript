@@ -250,7 +250,7 @@ def _parse_group(line, tokens):
 
 def _parse_free_type(token):
 
-	return DynamicExpression.parse(token.get_line(), token.body)
+	return DynamicLiteral.parse(token.get_line(), token.body)
 
 # Type-safe method for checking if a value is a specific token
 

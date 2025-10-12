@@ -7,15 +7,22 @@ from cwscript.value import *
 
 class DynamicExpression (ScriptExpression):
 
-	# Converts a compile-time ScriptExpression into a runtime-usable ScriptValue
-	# Children should overwrite `_evaluate()`, since this method serves
-	# as a wrapper that performs runtime type-checking
+	# Converts a node in the AST to a value usable at runtime
+	# This is done by returning items passed to the evaluation stack
+	# For literals, this will just be a StackValue
+	# For expressions taking arguments, use StackOperation & StackValueRequest
 
-	def evaluate(self, runner, value_type, eval_vars = True):
+	def get_stack(self, runner, eval_vars):
 
-		return runner.assert_type(self._evaluate(runner, eval_vars), value_type)
+		raise NotImplementedError()
 
-	def _evaluate(self, runner, eval_vars):
+class DynamicLiteral (DynamicExpression):
+
+	def get_stack(self, runner, eval_vars):
+
+		return [StackValue(self.get_value(runner, eval_vars))]
+
+	def get_value(self, runner, eval_vars):
 
 		raise NotImplementedError()
 
@@ -49,13 +56,13 @@ class DynamicExpression (ScriptExpression):
 		else:
 			raise CWParseError(f"Unable to parse expression '{string}'", line)
 
-class NullExpression (DynamicExpression):
+class NullExpression (DynamicLiteral):
 
 	def __init__(self, line):
 
 		super().__init__(line)
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
 		return NullValue(runner)
 
@@ -64,14 +71,14 @@ class NullExpression (DynamicExpression):
 
 		return NullExpression(line)
 
-class BoolExpression (DynamicExpression):
+class BoolExpression (DynamicLiteral):
 
 	def __init__(self, line, value):
 
 		super().__init__(line)
 		self._value = value
 
-	def _evaluate(self, runner, eval_vars):
+	def get_value(self, runner, eval_vars):
 
 		return IntValue(runner, 1 if self._value else 0)
 
@@ -82,14 +89,14 @@ class BoolExpression (DynamicExpression):
 			raise CWParseError(f"Invalid bool '{string}'", line)
 		return BoolExpression(line, string == "true")
 
-class IntExpression (DynamicExpression):
+class IntExpression (DynamicLiteral):
 
 	def __init__(self, line, value):
 
 		super().__init__(line)
 		self._value = value
 
-	def _evaluate(self, runner, eval_vars):
+	def get_value(self, runner, eval_vars):
 
 		return IntValue(runner, self._value)
 
@@ -119,14 +126,14 @@ class IntExpression (DynamicExpression):
 		self._value *= -1
 		return self
 
-class FloatExpression (DynamicExpression):
+class FloatExpression (DynamicLiteral):
 
 	def __init__(self, line, value):
 
 		super().__init__(line)
 		self._value = value
 
-	def _evaluate(self, runner, eval_vars):
+	def get_value(self, runner, eval_vars):
 
 		return FloatValue(runner, self._value)
 
@@ -166,14 +173,14 @@ class FloatExpression (DynamicExpression):
 		self._value *= -1
 		return self
 
-class StringExpression (DynamicExpression):
+class StringExpression (DynamicLiteral):
 
 	def __init__(self, line, value):
 
 		super().__init__(line)
 		self._value = value
 
-	def _evaluate(self, runner, eval_vars):
+	def get_value(self, runner, eval_vars):
 
 		return StringValue(runner, self._value)
 
@@ -203,7 +210,7 @@ class StringExpression (DynamicExpression):
 				value += c
 		return StringExpression(line, value)
 
-class VariableExpression (DynamicExpression):
+class VariableExpression (DynamicLiteral):
 
 	# Will need to be updated to include scope information
 
@@ -213,7 +220,7 @@ class VariableExpression (DynamicExpression):
 		self._is_global = is_global
 		self._value = value
 
-	def _evaluate(self, runner, eval_vars):
+	def get_value(self, runner, eval_vars):
 
 		if (self._is_global):
 			parent = runner.get_global_scope()
@@ -239,6 +246,8 @@ class VariableExpression (DynamicExpression):
 
 # List expressions do not perform any parsing on their own
 # They rely on the parsed values from the parser
+# Also, they inherit from DynamicExpression since they require
+# evaluating additional values
 
 class ListExpression (DynamicExpression):
 
@@ -249,20 +258,16 @@ class ListExpression (DynamicExpression):
 
 	# `eval_vars` is passed into `evaluate()` to account for function parameter names
 
-	def _evaluate(self, runner, eval_vars):
+	def get_stack(self, runner, eval_vars):
 
-		list_value = ListValue(runner)
-		for value in self._values:
-			list_value.get_list().append(value.evaluate(runner, ScriptValue, eval_vars))
-		return list_value
+		return [StackValueRequest(value) for value in self._values] + [StackList(len(self._values))]
 
 	def eval_as_parameters(self, runner):
 
 		output = []
 		for expression in self._values:
 			if (not isinstance(expression, VariableExpression)):
-				raise CWRuntimeError("Could not evaluate function parameter", self._parameters.get_line())
-			var = expression.evaluate(runner, VariableValue, False).extract_parameter_name(runner)
+				raise CWRuntimeError("Could not evaluate function parameter", self.get_line())
+			var = expression.get_value(runner, False).extract_parameter_name(runner)
 			output.append(var)
-		print("Parameters:", output)
 		return output
