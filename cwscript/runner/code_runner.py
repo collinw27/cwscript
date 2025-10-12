@@ -4,6 +4,7 @@ from cwscript import rules
 from cwscript.parser import code_parser
 from cwscript.value import *
 from cwscript.expression import *
+from cwscript.testing.stack import print_stack
 
 # In this project, 'runner' is used synonymously with 'evaluator'
 
@@ -30,6 +31,7 @@ class CodeRunner:
 		# Note that the entire program is implemented as a DoStatement operation
 
 		self._main_stack = [StackValueRequest(self._main, ScriptValue)]
+		self._pending_interrupt = None
 
 		# Scopes are stored separately from the stack, internally as dictionary objects
 
@@ -54,61 +56,109 @@ class CodeRunner:
 
 			for i, item in reversed(list(enumerate(self._main_stack))):
 
-				# Block: Insert next expression afterwards, remove when empty
-				# The value above the block from the previous instruction is removed first
-				# Blocks are removed automatically since expressions can create them an
-				# arbitrary number of times, and they therefore don't contribute to
-				# the argument count
+				# No interrupt: continue normally
 
-				if (isinstance(item, StackBlock)):
-					if (item.has_started()):
-						self._main_stack.pop(i + 1)
-					next_expression = item.pop_next()
-					if (next_expression is None):
+				if (self._pending_interrupt is None):
+
+					# Block: Insert next expression afterwards, remove when empty
+					# The value above the block from the previous instruction is removed first
+					# Blocks are removed automatically since expressions can create them an
+					# arbitrary number of times, and they therefore don't contribute to
+					# the argument count
+
+					if (isinstance(item, StackBlock)):
+						if (item.has_started()):
+							self._main_stack.pop(i + 1)
+						next_expression = item.pop_next()
+						if (next_expression is None):
+							self._main_stack.pop(i)
+						else:
+							self._main_stack.insert(i + 1, StackValueRequest(next_expression, ScriptValue))
+						break
+
+					# List: Consolidate values on top of it into the list
+
+					elif (isinstance(item, StackList)):
+						list_values = [a.value for a in reversed(self._main_stack[i + 1 : i + 1 + item.num_items])]
+						new_list = item.evaluate(self, list_values)
+						self._main_stack[i : i + 1 + item.num_items] = [new_list]
+						break
+
+					# Value request: Evaluate, either resulting in a single value
+					# or another operation
+
+					elif (isinstance(item, StackValueRequest)):
 						self._main_stack.pop(i)
-					else:
-						self._main_stack.insert(i + 1, StackValueRequest(next_expression, ScriptValue))
-					break
+						if (i == len(self._main_stack)):
+							self._main_stack += list(reversed(item.evaluate(self)))
+						else:
+							self._main_stack[i:i] = list(reversed(item.evaluate(self)))
+						break
 
-				# List: Consolidate values on top of it into the list
+					# Operation: Evaluate using values above it in stack
+					# Caveat: If an InterruptableOperation is interrupted, is will return
+					# the block it's being interrupted with
+					# This should be pushed to the stack instead of removing the operation
 
-				elif (isinstance(item, StackList)):
-					list_values = [a.value for a in reversed(self._main_stack[i + 1 : i + 1 + item.num_items])]
-					new_list = item.evaluate(self, list_values)
-					self._main_stack[i : i + 1 + item.num_items] = [new_list]
-					break
+					elif (isinstance(item, StackOperation)):
+						args = [a.value for a in reversed(self._main_stack[i + 1 : i + 1 + item.num_args])]
+						value = item.evaluate(self, args)
+						if (isinstance(value, StackNoOp)):
+							pass
+						elif (isinstance(value, StackReEval)):
+							self._main_stack[i + 1: i + 1 + len(value.new_args)] = value.new_args
+						elif (isinstance(value, StackBlock)):
+							self._main_stack.insert(i + 1, value)
+						else:
+							self._main_stack[i : i + 1 + item.num_args] = [value]
+						break
 
-				# Value request: Evaluate, either resulting in a single value
-				# or another operation
+					# Value: Keep propagating downward
 
-				elif (isinstance(item, StackValueRequest)):
-					self._main_stack.pop(i)
-					if (i == len(self._main_stack)):
-						self._main_stack += list(reversed(item.evaluate(self)))
-					else:
-						self._main_stack[i:i] = list(reversed(item.evaluate(self)))
-					break
+				# Interrupt: Continue collapsingn stack until it's handled
 
-				# Operation: Evaluate using values above it in stack
-				# Caveat: If an InterruptableOperation is interrupted, is will return
-				# the block it's being interrupted with
-				# This should be pushed to the stack instead of removing the operation
+				else:
 
-				elif (isinstance(item, StackOperation)):
-					args = [a.value for a in reversed(self._main_stack[i + 1 : i + 1 + item.num_args])]
-					value = item.evaluate(self, args)
-					if (isinstance(value, StackBlock)):
-						self._main_stack.insert(i + 1, value)
-					elif (isinstance(value, list)):
-						self._main_stack[i + 1: i + 1 + len(value)] = value
-					else:
-						self._main_stack[i : i + 1 + item.num_args] = [value]
-					break
+					# Block: Remove expression afterwards, and then self
 
-				# Value: Keep propagating downward
+					if (isinstance(item, StackBlock)):
+						if (item.has_started()):
+							self._main_stack.pop(i + 1)
+						self._main_stack.pop(i)
+						break
+
+					# List: Consolidate values into single NullValue
+
+					elif (isinstance(item, StackList)):
+						self._main_stack[i : i + 1 + item.num_items] = [NullValue(self)]
+						break
+
+					# Value request: Replace with null
+
+					elif (isinstance(item, StackValueRequest)):
+						self._main_stack[i] = NullValue(self)
+						break
+
+					# Operation: Attempt to handle the interrupt
+					# If not handled, should return NullValue
+
+					elif (isinstance(item, StackOperation)):
+						value = item.handle_interrupt(self, self._pending_interrupt)
+						if (isinstance(value, StackNoOp)):
+							pass
+						elif (isinstance(value, StackReEval)):
+							self._main_stack[i + 1: i + 1 + len(value)] = value.new_args
+						elif (isinstance(value, StackBlock)):
+							self._main_stack.insert(i + 1, value)
+						else:
+							self._main_stack[i : i + 1 + item.num_args] = [value]
+						break
+
+					# Value: Keep propagating downward
 
 			# When finished, stack should just be the return value of `do`
 
+			# print_stack(self._main_stack)
 			return len(self._main_stack) > 1
 
 		except CWError as error:
@@ -135,10 +185,29 @@ class CodeRunner:
 	def add_function_scope(self, scope):
 
 		self._scopes.append(scope)
+		if (len(self._scopes) > MAX_RECURSION_DEPTH):
+			raise CWRuntimeError("Maximum recursion depth exceeded", self.get_line())
 
 	def pop_function_scope(self):
 
 		self._scopes.pop()
+
+	# Raises an interrupt to be handled on the next iteration
+	# If an interrupt is already raised, this will be invalid
+	# For situations where an interrupt is thrown while handling another,
+	# it should only be possible for the new one to be thrown WHILE
+	# handling the other, so the first should be set as handled before
+	# throwing the second
+
+	def raise_interrupt(self, interrupt):
+
+		if (self._pending_interrupt is not None):
+			raise RuntimeError("Raised interrupt before handling another")
+		self._pending_interrupt = interrupt
+
+	def handle_interrupt(self):
+
+		self._pending_interrupt = None
 
 	# Throws an error if an expression receives an incorrect type
 

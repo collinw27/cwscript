@@ -34,16 +34,24 @@ class StackOperation (StackItem):
 		self._value_type = value_type
 		self.num_args = num_args
 
+	def _evaluate(self, runner, arg, fn):
+
+		value = fn(runner, arg)
+		if (isinstance(value, VariableValue) and self._eval_vars):
+			value = value.get_var_value(runner)
+		runner.assert_type(value, self._value_type)
+		return StackValue(value)
+
 	# Variable evaluation is performed after the operation's value is returned
 	# This way, the operation doesn't need to have any knowledge of `eval_vars`
 
 	def evaluate(self, runner, args):
 
-		value = self._op_class.evaluate(runner, args)
-		if (isinstance(value, VariableValue) and self._eval_vars):
-			value = value.get_var_value(runner)
-		runner.assert_type(value, self._value_type)
-		return StackValue(value)
+		return self._evaluate(runner, args, self._op_class.evaluate)
+
+	def handle_interrupt(self, runner, interrupt):
+
+		return self._evaluate(runner, interrupt, self._op_class.handle_interrupt)
 
 	def get_line(self):
 
@@ -61,20 +69,25 @@ class StackInterruptableOperation (StackOperation):
 		super().__init__(expression, num_args, value_type, eval_vars)
 		self._state = state.copy()
 
-	# Instead of a ScriptValue, a StackBlock can be returned
-	# to trigger an interrupt
-	# Alternatively, a list of ValueRequests can replace the values
-	# above this in the stack (ex for while loops)
+	# Instead of a ScriptValue, a StackBlock, StackNoOp, or StackReEval can be returned
 
-	def evaluate(self, runner, args):
+	def _evaluate(self, runner, arg, fn):
 
-		value = self._op_class.evaluate(runner, args, self._state)
-		if (isinstance(value, StackBlock) or isinstance(value, list)):
+		value = fn(runner, arg, self._state)
+		if (isinstance(value, StackItem)):
 			return value
 		if (isinstance(value, VariableValue) and self._eval_vars):
 			value = value.get_var_value(runner)
 		runner.assert_type(value, self._value_type)
 		return StackValue(value)
+
+	def evaluate(self, runner, args):
+
+		return self._evaluate(runner, args, self._op_class.evaluate_special)
+
+	def handle_interrupt(self, runner, interrupt):
+
+		return self._evaluate(runner, interrupt, self._op_class.handle_interrupt_special)
 
 # Runs all expressions in a block in sequence
 # Operations are responsible for flagging when to execute blocks
@@ -111,3 +124,35 @@ class StackList (StackItem):
 			new_list.get_list().append(list_value)
 		runner.assert_type(new_list, self._value_type)
 		return StackValue(new_list)
+
+# These values aren't actually pushed to the stack, and they are instead
+# returned by operations that are interrupted to signal how the runner
+# should react
+
+class StackNoOp (StackItem):
+
+	pass
+
+class StackReEval (StackItem):
+
+	def __init__(self, new_args):
+
+		self.new_args = new_args
+
+class Interrupt:
+
+	pass
+
+class ReturnInterrupt:
+
+	def __init__(self, value):
+
+		self.value = value
+
+class ContinueInterrupt:
+
+	pass
+
+class BreakInterrupt:
+
+	pass

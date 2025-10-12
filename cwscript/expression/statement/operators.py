@@ -43,7 +43,25 @@ class OperatorChainExpression (BinaryOperatorExpression):
 
 class OperatorIndexExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, ContainerValue),
+			StackValueRequest(self._operand_2, ScriptValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		if (isinstance(args[0], ObjectValue)):
+			runner.assert_type(args[1], StringValue)
+			return VariableValue(runner, args[0], args[1].get_value())
+		elif (isinstance(args[0], ListValue)):
+			runner.assert_type(args[1], IntValue)
+			return VariableValue(runner, args[0], args[1].get_value())
+		else:
+			raise RuntimeError("Invalid container")
 
 class OperatorCallExpression (BinaryOperatorExpression):
 
@@ -56,7 +74,7 @@ class OperatorCallExpression (BinaryOperatorExpression):
 		]
 
 	@staticmethod
-	def evaluate(runner, args, state):
+	def evaluate_special(runner, args, state):
 
 		if (state.get('waiting', True)):
 
@@ -73,6 +91,7 @@ class OperatorCallExpression (BinaryOperatorExpression):
 			# Create a new variable scope, and initialize the function's variables within it
 
 			scope = ObjectValue(runner)
+			scope.set_field(runner, '~RET', NullValue(runner))
 			for i in range(len(parameters)):
 				scope.set_field(runner, parameters[i], arg_values[i])
 			runner.add_function_scope(scope)
@@ -84,10 +103,29 @@ class OperatorCallExpression (BinaryOperatorExpression):
 		else:
 
 			runner.pop_function_scope()
-
-			# In the future, will add return values
-
 			return NullValue(runner)
+
+	# Handle an interrupt by returning return value
+
+	@staticmethod
+	def handle_interrupt_special(runner, interrupt, state):
+
+		# Handle return as expected
+
+		if (isinstance(interrupt, ReturnInterrupt)):
+			runner.handle_interrupt()
+			return interrupt.value
+
+		# Continue & break cannot propogate past function scope
+
+		elif (isinstance(interrupt, ContinueInterrupt)):
+			raise CWRuntimeError("Invalid use of continue", runner.get_line())
+		elif (isinstance(interrupt, BreakInterrupt)):
+			raise CWRuntimeError("Invalid use of break", runner.get_line())
+
+		# Otherwise, let another expression handle it
+
+		return NullValue(runner)
 
 class OperatorExponentExpression (BinaryOperatorExpression):
 
@@ -141,27 +179,93 @@ class OperatorSubtractExpression (BinaryOperatorExpression):
 
 class OperatorGreaterExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, NumericValue),
+			StackValueRequest(self._operand_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+		
+		return BoolValue(runner, args[0].get_value() > args[1].get_value())
 
 class OperatorLessExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, NumericValue),
+			StackValueRequest(self._operand_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+		
+		return BoolValue(runner, args[0].get_value() < args[1].get_value())
 
 class OperatorGreaterEqualExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, NumericValue),
+			StackValueRequest(self._operand_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+		
+		return BoolValue(runner, args[0].get_value() >= args[1].get_value())
 
 class OperatorLessEqualExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, NumericValue),
+			StackValueRequest(self._operand_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+		
+		return BoolValue(runner, args[0].get_value() <= args[1].get_value())
 
 class OperatorEqualExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, ScriptValue),
+			StackValueRequest(self._operand_2, ScriptValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+		
+		return BoolValue(runner, args[0].is_equal(runner, args[1]))
 
 class OperatorUnequalExpression (BinaryOperatorExpression):
 
-	pass
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._operand_1, ScriptValue),
+			StackValueRequest(self._operand_2, ScriptValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+		
+		return BoolValue(runner, not args[0].is_equal(runner, args[1]))
 
 class OperatorAndExpression (BinaryOperatorExpression):
 

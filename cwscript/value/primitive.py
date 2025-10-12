@@ -26,8 +26,31 @@ class NumericValue (ScriptValue):
 
 	pass
 
-# Used to represent both integer and boolean values
-# False is 0, True is anything else
+# As a NumericValue, bools can be used as if they were 1 or 0
+# in numeric expressions
+
+class BoolValue (NumericValue):
+
+	def __init__(self, runner, value):
+
+		super().__init__(runner)
+		self._value = bool(value)
+
+	def get_value(self):
+
+		return int(self._value)
+
+	def to_string(self, runner, isolated = True):
+
+		return "true" if self._value else "false"
+
+	def is_equal(self, runner, other):
+
+		return (isinstance(other, NumericValue) and self.get_value() == other.get_value())
+
+	def to_bool(self, runner):
+
+		return self._value
 
 class IntValue (NumericValue):
 

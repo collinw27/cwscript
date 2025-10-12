@@ -12,3 +12,5 @@ ALPHA = list('abcdefghijklmnopqrstuvwxyz')
 NUMS = list('0123456789')
 
 VAR_ALLOWED = ALPHA + NUMS + ['_']
+
+MAX_RECURSION_DEPTH = 2048

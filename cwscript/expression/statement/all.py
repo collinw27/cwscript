@@ -22,26 +22,31 @@ class PrintStatement (StatementExpression):
 		print(args[0].to_string(runner))
 		return NullValue(runner)
 
-class MaxStatement (StatementExpression):
+class LocalScopeStatement (StatementExpression):
 
 	def __init__(self, line, inputs):
 
 		super().__init__(line)
-		self._value_1 = inputs['value_1']
-		self._value_2 = inputs['value_2']
+
+	# No arguments, so simply return the value
+	# `evaluate()` should never be called
 
 	def get_stack(self, runner, value_type, eval_vars):
 
-		return [
-			StackValueRequest(self._value_1, NumericValue),
-			StackValueRequest(self._value_2, NumericValue),
-			StackOperation(self, 2, value_type, eval_vars)
-		]
+		return [StackValue(runner.get_function_scope())]
 
-	@staticmethod
-	def evaluate(runner, args):
+class GlobalScopeStatement (StatementExpression):
 
-		return args[0] if (args[0].get_value() > args[1].get_value()) else args[1]
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+
+	# No arguments, so simply return the value
+	# `evaluate()` should never be called
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [StackValue(runner.get_global_scope())]
 
 class IfStatement (StatementExpression):
 
@@ -59,13 +64,13 @@ class IfStatement (StatementExpression):
 		]
 
 	@staticmethod
-	def evaluate(runner, args, state):
+	def evaluate_special(runner, args, state):
 
 		if (args[0].to_bool(runner) and state.get('waiting', True)):
 			state['waiting'] = False
 			return StackBlock(state['block'])
 		else:
-			return IntValue(runner, int(args[0].to_bool(runner)))
+			return BoolValue(runner, args[0].to_bool(runner))
 
 class DoStatement (StatementExpression):
 
@@ -87,7 +92,7 @@ class DoStatement (StatementExpression):
 	@staticmethod
 	def evaluate(runner, args):
 
-		return IntValue(runner, 1)
+		return BoolValue(runner, True)
 
 class WhileLoopStatement (StatementExpression):
 
@@ -105,19 +110,38 @@ class WhileLoopStatement (StatementExpression):
 		]
 
 	@staticmethod
-	def evaluate(runner, args, state):
+	def evaluate_special(runner, args, state):
 
 		# Returns whether the block was run at least once
 
 		if (state.get('needs_eval', False)):
 			state['needs_eval'] = False
-			return [StackValueRequest(state['condition'], ScriptValue)]
+			return StackReEval([StackValueRequest(state['condition'], ScriptValue)])
 		elif (args[0].to_bool(runner)):
 			state['was_run'] = True
 			state['needs_eval'] = True
 			return StackBlock(state['block'])
 		else:
-			return IntValue(runner, int(state.get('was_run', False)))
+			return BoolValue(runner, state.get('was_run', False))
+
+	@staticmethod
+	def handle_interrupt_special(runner, interrupt, state):
+
+		# Handle break interrupt by exiting the loop
+
+		if (isinstance(interrupt, BreakInterrupt)):
+			runner.handle_interrupt()
+			return BoolValue(runner, state.get('was_run', False))
+
+		# Handle continue by re-calling the normal evaluation
+
+		elif (isinstance(interrupt, ContinueInterrupt)):
+			runner.handle_interrupt()
+			return StackNoOp()
+
+		# Otherwise, let another expression handle it
+
+		return NullValue(runner)
 
 class ForLoopStatement (StatementExpression):
 
@@ -137,16 +161,75 @@ class ForLoopStatement (StatementExpression):
 		]
 
 	@staticmethod
-	def evaluate(runner, args, state):
+	def evaluate_special(runner, args, state):
 
 		# Returns whether the block was run at least once
 
 		if (state['i'] >= len(args[1].get_list())):
-			return IntValue(runner, int(state['i'] > 0))
+			return BoolValue(runner, state['i'] > 0)
 		else:
 			args[0].set_var_value(runner, args[1].get_list()[state['i']])
 			state['i'] += 1
 			return StackBlock(state['block'])
+
+	@staticmethod
+	def handle_interrupt_special(runner, interrupt, state):
+
+		# Handle break interrupt by exiting the loop
+
+		if (isinstance(interrupt, BreakInterrupt)):
+			runner.handle_interrupt()
+			return BoolValue(runner, state['i'] > 0)
+
+		# Handle continue by re-calling the normal evaluation
+
+		elif (isinstance(interrupt, ContinueInterrupt)):
+			runner.handle_interrupt()
+			return StackNoOp()
+
+		# Otherwise, let another expression handle it
+
+		return NullValue(runner)
+
+class ContinueStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackOperation(self, 0, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		# Return is handled by an interrupt containing the return value
+
+		runner.raise_interrupt(ContinueInterrupt())
+		return NullValue(runner)
+
+class BreakStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackOperation(self, 0, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		# Return is handled by an interrupt containing the return value
+
+		runner.raise_interrupt(BreakInterrupt())
+		return NullValue(runner)
 
 # In the previous iteration of this project
 # functions were automatically 'bound' to the current object
@@ -179,3 +262,46 @@ class FunctionStatement (StatementExpression):
 			raise CWRuntimeError("Could not evaluate function parameter list", self._parameters.get_line())
 		parameters = self._parameters.eval_as_parameters(runner)
 		return [StackValue(runner.assert_type(FunctionValue(runner, parameters, self._body), value_type))]
+
+class ReturnStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+		self._value = inputs['value']
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._value, ScriptValue),
+			StackOperation(self, 1, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		# Return is handled by an interrupt containing the return value
+
+		runner.raise_interrupt(ReturnInterrupt(args[0]))
+		return NullValue(runner)
+
+class MaxStatement (StatementExpression):
+
+	def __init__(self, line, inputs):
+
+		super().__init__(line)
+		self._value_1 = inputs['value_1']
+		self._value_2 = inputs['value_2']
+
+	def get_stack(self, runner, value_type, eval_vars):
+
+		return [
+			StackValueRequest(self._value_1, NumericValue),
+			StackValueRequest(self._value_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
+		]
+
+	@staticmethod
+	def evaluate(runner, args):
+
+		return args[0] if (args[0].get_value() > args[1].get_value()) else args[1]

@@ -53,8 +53,10 @@ _statement_args = {}
 
 # print [value: string]
 _define_statement('print', ['value: *'], PrintStatement)
-# max [value_1: int|float] [value_2: int|float]
-_define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
+# local
+_define_statement('local', [], LocalScopeStatement)
+# global
+_define_statement('global', [], GlobalScopeStatement)
 # if [condition: *] [body: block]
 _define_statement('if', ['condition: *', 'body: block'], IfStatement)
 # do [body: block]
@@ -63,8 +65,16 @@ _define_statement('do', ['body: block'], DoStatement)
 _define_statement('while', ['condition: *', 'body: block'], WhileLoopStatement)
 # for [iterator: var] in [list: list] [body: block]
 _define_statement('for', ['iterator: *', 'in: _', 'list: *', 'body: block'], ForLoopStatement)
+# continue [value: *]
+_define_statement('continue', [], ContinueStatement)
+# break [value: *]
+_define_statement('break', [], BreakStatement)
 # function [parameters: list] [body: block]
 _define_statement('function', ['parameters: *', 'body: block'], FunctionStatement)
+# return [value: *]
+_define_statement('return', ['value: *'], ReturnStatement)
+# max [value_1: int|float] [value_2: int|float]
+_define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
 
 # OPERATORS
 

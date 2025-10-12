@@ -80,7 +80,7 @@ class BoolExpression (DynamicLiteral):
 
 	def get_value(self, runner, eval_vars):
 
-		return IntValue(runner, 1 if self._value else 0)
+		return BoolValue(runner, self._value)
 
 	@staticmethod
 	def parse(line, string):
