@@ -47,12 +47,12 @@ class OperatorIndexExpression (BinaryOperatorExpression):
 
 class OperatorCallExpression (BinaryOperatorExpression):
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		return [
-			StackValueRequest(self._operand_1),
-			StackValueRequest(self._operand_2),
-			StackInterruptableOperation(OperatorCallExpression, 2, eval_vars)
+			StackValueRequest(self._operand_1, FunctionValue),
+			StackValueRequest(self._operand_2, ListValue),
+			StackInterruptableOperation(self, 2, value_type, eval_vars)
 		]
 
 	@staticmethod
@@ -111,12 +111,12 @@ class OperatorModulusExpression (BinaryOperatorExpression):
 
 class OperatorAddExpression (BinaryOperatorExpression):
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		return [
-			StackValueRequest(self._operand_1),
-			StackValueRequest(self._operand_2),
-			StackOperation(OperatorAddExpression, 2, eval_vars)
+			StackValueRequest(self._operand_1, NumericValue),
+			StackValueRequest(self._operand_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
 		]
 
 	@staticmethod
@@ -126,12 +126,12 @@ class OperatorAddExpression (BinaryOperatorExpression):
 
 class OperatorSubtractExpression (BinaryOperatorExpression):
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		return [
-			StackValueRequest(self._operand_1),
-			StackValueRequest(self._operand_2),
-			StackOperation(OperatorSubtractExpression, 2, eval_vars)
+			StackValueRequest(self._operand_1, NumericValue),
+			StackValueRequest(self._operand_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
 		]
 
 	@staticmethod
@@ -173,12 +173,12 @@ class OperatorOrExpression (BinaryOperatorExpression):
 
 class OperatorAssignExpression (BinaryOperatorExpression):
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		return [
-			StackValueRequest(self._operand_1, False),
-			StackValueRequest(self._operand_2),
-			StackOperation(OperatorAssignExpression, 2, eval_vars)
+			StackValueRequest(self._operand_1, VariableValue, False),
+			StackValueRequest(self._operand_2, ScriptValue),
+			StackOperation(self, 2, value_type, eval_vars)
 		]	
 
 	@staticmethod

@@ -1,19 +1,13 @@
 
-print (1 + 2 - 3);
-.a = 2;
-print (.a + 3);
+function [.a]
+{
+	if (1 - .a)
+	{
+		print (.a + 1);
+	};
+}
+-> [2];
 
-if 0 {print "Failed";};
-if true {print "Succeeded";};
+print max 0 do {};
 
-.func = function [.a, .b] {
-	print (.a + .b);
-};
-
-# Make sure function scopes are removed
-
-.c = 1;
-print (.func -> [3, 1 + 2]);
-.func -> [3, 1 + 2];
-.func -> [3, 1 + 2];
-print .c;
+# 1 + [2];

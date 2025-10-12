@@ -14,7 +14,7 @@ class CodeRunner:
 
 		try:
 			self._code = code
-			self._main = code_parser.parse(self._code)
+			self._main = DoStatement(0, {'body': code_parser.parse(self._code)})
 		except CWError as error:
 			self._handle_error(error)
 
@@ -30,7 +30,7 @@ class CodeRunner:
 
 		# Note that the entire program is implemented as a DoStatement operation
 
-		self._main_stack = [StackOperation(DoStatement, 1, False), StackBlock(self._main)]
+		self._main_stack = [StackValueRequest(self._main, ScriptValue)]
 
 		# Scopes are stored separately from the stack, internally as dictionary objects
 
@@ -68,17 +68,15 @@ class CodeRunner:
 					if (next_expression is None):
 						self._main_stack.pop(i)
 					else:
-						self._main_stack.insert(i + 1, StackValueRequest(next_expression))
+						self._main_stack.insert(i + 1, StackValueRequest(next_expression, ScriptValue))
 					break
 
 				# List: Consolidate values on top of it into the list
 
 				elif (isinstance(item, StackList)):
 					list_values = [a.value for a in reversed(self._main_stack[i + 1 : i + 1 + item.num_items])]
-					new_list = ListValue(self)
-					for list_value in list_values:
-						new_list.get_list().append(list_value)
-					self._main_stack[i : i + 1 + item.num_items] = [StackValue(new_list)]
+					new_list = item.evaluate(self, list_values)
+					self._main_stack[i : i + 1 + item.num_items] = [new_list]
 					break
 
 				# Value request: Evaluate, either resulting in a single value
@@ -110,17 +108,20 @@ class CodeRunner:
 
 			# When finished, stack should just be the return value of `do`
 
-			# print_stack(self._main_stack)
 			return len(self._main_stack) > 1
 
 		except CWError as error:
 			self._handle_error(error)
 
 	# Returns the line where execution is
+	# Propogates downward until a valid stack item is found
 
 	def get_line(self):
 
-		return 0
+		for item in reversed(self._main_stack):
+			if (isinstance(item, StackOperation)):
+				return item.get_line()
+		return None
 
 	def get_global_scope(self):
 
@@ -143,7 +144,7 @@ class CodeRunner:
 	def assert_type(self, value, value_type):
 
 		if (not isinstance(value, value_type)):
-			raise CWRuntimeError("Type assertion failed for %s with type %s" % (value, value_type), self.get_line())
+			raise CWRuntimeError("Type assertion of type %s failed for value %s" % (value_type.__name__, value.to_string(self, False)), self.get_line())
 		return value
 
 	# A wrapper to print debug info when an error is encountered

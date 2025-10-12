@@ -9,11 +9,11 @@ class PrintStatement (StatementExpression):
 		super().__init__(line)
 		self._value = inputs['value']
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		return [
-			StackValueRequest(self._value),
-			StackOperation(PrintStatement, 1, eval_vars)
+			StackValueRequest(self._value, ScriptValue),
+			StackOperation(self, 1, value_type, eval_vars)
 		]
 
 	@staticmethod
@@ -30,12 +30,12 @@ class MaxStatement (StatementExpression):
 		self._value_1 = inputs['value_1']
 		self._value_2 = inputs['value_2']
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		return [
-			StackValueRequest(self._value_1),
-			StackValueRequest(self._value_2),
-			StackOperation(MaxStatement, 2, eval_vars)
+			StackValueRequest(self._value_1, NumericValue),
+			StackValueRequest(self._value_2, NumericValue),
+			StackOperation(self, 2, value_type, eval_vars)
 		]
 
 	@staticmethod
@@ -51,13 +51,13 @@ class IfStatement (StatementExpression):
 		self._condition = inputs['condition']
 		self._body = inputs['body']
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		# Runs regardless of conditional, need short-circuit evaluation to fix
 
 		return [
-			StackValueRequest(self._condition),
-			StackInterruptableOperation(IfStatement, 1, eval_vars, {'block': self._body})
+			StackValueRequest(self._condition, ScriptValue),
+			StackInterruptableOperation(self, 1, value_type, eval_vars, {'block': self._body})
 		]
 
 	@staticmethod
@@ -76,14 +76,14 @@ class DoStatement (StatementExpression):
 		super().__init__(line)
 		self._body = inputs['body']
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		# An InterruptableOperation isn't used since the block
 		# is run once and unconditionally, so no setup is needed
 
 		return [
-			StackBlock(self._body, True),
-			StackOperation(DoStatement, 1, eval_vars)
+			StackBlock(self._body),
+			StackOperation(self, 0, value_type, eval_vars)
 		]
 
 	@staticmethod
@@ -104,7 +104,7 @@ class FunctionStatement (StatementExpression):
 		self._parameters = inputs['parameters']
 		self._body = inputs['body']
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		# Parsing the function parameters is weird because it's essentially a hack
 		# In the definition, you write the parameters as a list:
@@ -121,4 +121,4 @@ class FunctionStatement (StatementExpression):
 		if (not isinstance(self._parameters, ListExpression)):
 			raise CWRuntimeError("Could not evaluate function parameter list", self._parameters.get_line())
 		parameters = self._parameters.eval_as_parameters(runner)
-		return [StackValue(FunctionValue(runner, parameters, self._body))]
+		return [StackValue(runner.assert_type(FunctionValue(runner, parameters, self._body), value_type))]

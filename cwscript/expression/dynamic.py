@@ -12,15 +12,15 @@ class DynamicExpression (ScriptExpression):
 	# For literals, this will just be a StackValue
 	# For expressions taking arguments, use StackOperation & StackValueRequest
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
 		raise NotImplementedError()
 
 class DynamicLiteral (DynamicExpression):
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
-		return [StackValue(self.get_value(runner, eval_vars))]
+		return [StackValue(runner.assert_type(self.get_value(runner, eval_vars), value_type))]
 
 	def get_value(self, runner, eval_vars):
 
@@ -62,7 +62,7 @@ class NullExpression (DynamicLiteral):
 
 		super().__init__(line)
 
-	def get_stack(self, runner, eval_vars):
+	def get_value(self, runner, eval_vars):
 
 		return NullValue(runner)
 
@@ -257,10 +257,13 @@ class ListExpression (DynamicExpression):
 		self._values = values
 
 	# `eval_vars` is passed into `evaluate()` to account for function parameter names
+	# We technially could validate ListValue with value_type here instead of delegating
+	# it to StackList, but the latter approach is more in line with how other operations act
+	# i.e. the error won't be thrown until the list's valuse are evaluated
 
-	def get_stack(self, runner, eval_vars):
+	def get_stack(self, runner, value_type, eval_vars):
 
-		return [StackValueRequest(value) for value in self._values] + [StackList(len(self._values))]
+		return [StackValueRequest(value, ScriptValue) for value in self._values] + [StackList(len(self._values), value_type)]
 
 	def eval_as_parameters(self, runner):
 

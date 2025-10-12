@@ -66,7 +66,7 @@ class ListValue (ContainerValue):
 
 	def to_string(self, runner, isolated = True):
 
-		return f"ARR:0x{self._id:0x}"
+		return f"LIST:0x{self._id:0x}"
 
 	# Compare all entries using overloaded equal
 

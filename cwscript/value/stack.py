@@ -1,8 +1,6 @@
 
 from cwscript.value.primitive import VariableValue
-
-# For now, stack items do not have runtime type checking
-# This will be fixed after I get the basic structure working
+from cwscript.value.mutable import ListValue
 
 class StackItem:
 
@@ -10,14 +8,15 @@ class StackItem:
 
 class StackValueRequest (StackItem):
 
-	def __init__(self, value, eval_vars = True):
+	def __init__(self, value, value_type, eval_vars = True):
 
 		self._value = value
+		self._value_type = value_type
 		self._eval_vars = eval_vars
 
 	def evaluate(self, runner):
 
-		return self._value.get_stack(runner, self._eval_vars)
+		return self._value.get_stack(runner, self._value_type, self._eval_vars)
 
 class StackValue (StackItem):
 
@@ -27,10 +26,12 @@ class StackValue (StackItem):
 
 class StackOperation (StackItem):
 
-	def __init__(self, op_class, num_args, eval_vars):
+	def __init__(self, expression, num_args, value_type, eval_vars):
 
-		self._op_class = op_class
+		self._op_class = expression.__class__
+		self._line = expression.get_line()
 		self._eval_vars = eval_vars
+		self._value_type = value_type
 		self.num_args = num_args
 
 	# Variable evaluation is performed after the operation's value is returned
@@ -38,11 +39,15 @@ class StackOperation (StackItem):
 
 	def evaluate(self, runner, args):
 
-		# return runner.assert_type(self._op_class.evaluate(runner, args, self._eval_vars), self._value_type)
 		value = self._op_class.evaluate(runner, args)
 		if (isinstance(value, VariableValue) and self._eval_vars):
 			value = value.get_var_value(runner)
+		runner.assert_type(value, self._value_type)
 		return StackValue(value)
+
+	def get_line(self):
+
+		return self._line
 
 # Stores a state variable that is passed into each `evaluate()` call
 # This is used for operations that need to run a block as part of
@@ -51,9 +56,9 @@ class StackOperation (StackItem):
 
 class StackInterruptableOperation (StackOperation):
 
-	def __init__(self, op_class, num_args, eval_vars, state = {}):
+	def __init__(self, expression, num_args, value_type, eval_vars, state = {}):
 
-		super().__init__(op_class, num_args, eval_vars)
+		super().__init__(expression, num_args, value_type, eval_vars)
 		self._state = state.copy()
 
 	# Instead of a ScriptValue, a StackBlock can be returned
@@ -66,6 +71,7 @@ class StackInterruptableOperation (StackOperation):
 			return value
 		if (isinstance(value, VariableValue) and self._eval_vars):
 			value = value.get_var_value(runner)
+		runner.assert_type(value, self._value_type)
 		return StackValue(value)
 
 # Runs all expressions in a block in sequence
@@ -91,6 +97,15 @@ class StackBlock (StackItem):
 
 class StackList (StackItem):
 
-	def __init__(self, num_items):
+	def __init__(self, num_items, value_type):
 
 		self.num_items = num_items
+		self._value_type = value_type
+
+	def evaluate(self, runner, list_values):
+
+		new_list = ListValue(self)
+		for list_value in list_values:
+			new_list.get_list().append(list_value)
+		runner.assert_type(new_list, self._value_type)
+		return StackValue(new_list)
