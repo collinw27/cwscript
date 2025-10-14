@@ -2,7 +2,7 @@ from cwscript.constants import *
 from cwscript.errors import *
 from cwscript.lexer import code_lexer
 from cwscript.lexer.token import Token
-from cwscript.expression import *
+from cwscript.parser.ast import *
 from cwscript import rules
 
 def parse(code):
@@ -12,7 +12,7 @@ def parse(code):
 	tokens = code_lexer.lex(code)
 	return _parse_block(0, tokens)
 
-# At their core, BlockExpression and ListExpression are composed of
+# At their core, blocks and lists are composed of
 # expressions delimited by separators (; or ,)
 # Thus, the same method is used for parsing them
 # One important difference: list expressions need not have a trailing comma,
@@ -69,12 +69,9 @@ def _parse_block_or_list(line, tokens, is_block):
 		statements.append(_parse_group(statement[0].get_line(), statement))
 
 	if (is_block):
-		return BlockExpression(line, statements)
+		return ASTValue(line, ASTNode.TYPE_BLOCK, statements)
 	else:
-		return ListExpression(line, statements)
-
-# Returns a DynamicExpression to be used in a BlockExpression,
-# or as an argument in a statement
+		return ASTValue(line, ASTNode.TYPE_LIST, statements)
 
 def _parse_group(line, tokens):
 
@@ -153,25 +150,21 @@ def _parse_group(line, tokens):
 					raise CWParseError(f"Statement '{token.body}' is missing argument(s)", token.get_line())
 
 				# Attempt to parse into one of the three expression types
-				# At this point, `argument` can be a free type token, a dynamic expression, or a static expression
+				# At this point, `argument` can be a free type token or an expression
 
-				arg_name, arg_type = rules.get_arg(token.body, i)
-				if (arg_type == rules.ARG_DYNAMIC):
-					if (_is_token(argument, Token.FREE_TYPE)):
-						argument = _parse_free_type(argument)
-					if (not isinstance(argument, DynamicExpression)):
-						raise CWParseError(f"Invalid dynamic expression in statement '{token.body}'", token.get_line())
-					arguments[arg_name] = argument
-				elif (arg_type == rules.ARG_KEYWORD):
+				arg_name, is_keyword = rules.get_arg(token.body, i)
+				if (is_keyword):
 					if (not _is_token(argument, Token.FREE_TYPE) or argument.body != arg_name):
 						raise CWParseError(f"Expected keyword '{arg_name}' in statement '{token.body}'", token.get_line())
 				else:
-					if (not isinstance(argument, BlockExpression)):
-						raise CWParseError(f"Invalid block in statement '{token.body}'", token.get_line())
+					if (_is_token(argument, Token.FREE_TYPE)):
+						argument = _parse_free_type(argument)
+					if (not isinstance(argument, ASTNode)):
+						raise CWParseError(f"Invalid dynamic expression in statement '{token.body}'", token.get_line())
 					arguments[arg_name] = argument
 
 			statement_class = rules.get_statement_class(token.body)
-			tokens.insert(pos, statement_class(token.get_line(), arguments))
+			tokens.insert(pos, ASTOperation(token.get_line(), statement_class, arguments))
 
 		# Group prefix operator with successive operand
 
@@ -185,19 +178,18 @@ def _parse_group(line, tokens):
 				raise CWParseError(f"Prefix operator '{token.body}' is missing operand", token.get_line())
 			if (_is_token(operand, Token.FREE_TYPE)):
 				operand = _parse_free_type(operand)
-			if (not isinstance(operand, DynamicExpression)):
+			if (not isinstance(operand, ASTNode)):
 				raise CWParseError(f"Invalid operand for operator '{token.body}'", token.get_line())
 
-			# Special case: negation applied to an IntExpression or FloatExpression
-			# will be grouped into a single Int-/FloatExpression:
+			# Special case: negation applied to an int or float will just be applied
+			# here instead of grouping it under an operation
 
 			operator_class = rules.get_prefix_op_class(token.body)
-			if (operator_class is OperatorNegativeExpression and
-				(isinstance(operand, IntExpression) or isinstance(operand, FloatExpression))
-			):
-				token_to_insert = operand.negate()
+			if (operator_class is OperatorNegative and (isinstance(operand, ASTValue))):
+				if (operand.try_negate()):
+					token_to_insert = operand
 			else:
-				token_to_insert = operator_class(token.get_line(), {'operand': operand})
+				token_to_insert = ASTOperation(token.get_line(), operator_class, {'op': operand})
 			tokens.insert(pos, token_to_insert)
 
 		pos -= 1
@@ -226,11 +218,11 @@ def _parse_group(line, tokens):
 					operand_1 = _parse_free_type(operand_1)
 				if (_is_token(operand_2, Token.FREE_TYPE)):
 					operand_2 = _parse_free_type(operand_2)
-				if not (isinstance(operand_1, DynamicExpression) and isinstance(operand_2, DynamicExpression)):
+				if not (isinstance(operand_1, ASTNode) and isinstance(operand_2, ASTNode)):
 					raise CWParseError(f"Invalid operand for operator '{token.body}'", token.get_line())
-				operator_class = rules.get_binary_op_class(token.body)
 				pos -= 1
-				tokens.insert(pos, operator_class(token.get_line(), {'operand_1': operand_1, 'operand_2': operand_2}))
+				operator_class = rules.get_binary_op_class(token.body)
+				tokens.insert(pos, ASTOperation(token.get_line(), operator_class, {'op_1': operand_1, 'op_2': operand_2}))
 
 			pos += 1 if l_to_r else -1
 
@@ -250,7 +242,7 @@ def _parse_group(line, tokens):
 
 def _parse_free_type(token):
 
-	return DynamicLiteral.parse(token.get_line(), token.body)
+	return ASTValue.parse(token.get_line(), token.body)
 
 # Type-safe method for checking if a value is a specific token
 

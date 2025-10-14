@@ -1,6 +1,6 @@
 import sys
 
-from cwscript.runner.code_runner import CodeRunner
+from cwscript.program import Program
 
 if (__name__ == '__main__'):
 
@@ -14,7 +14,7 @@ if (__name__ == '__main__'):
 
 	# Continue execution until evaluator runs out of expressions
 
-	code_runner = CodeRunner(code)
-	while (code_runner.run_next()):
+	program = Program(code)
+	while (program.run_next()):
 		pass
 	print("[Program finished with exit code 0]")

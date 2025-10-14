@@ -1,4 +1,4 @@
-from cwscript.expression import *
+from cwscript.parser.ast import *
 
 def print_ast(obj):
 
@@ -6,15 +6,19 @@ def print_ast(obj):
 
 def _print_ast(obj, nesting):
 
-	print('  ' * nesting + str(obj))
+	# print("> ", obj)
+	if (isinstance(obj, ASTValue)):
+		dtype = ["block", "null", "bool", "int", "float", "string", "variable", "list"][obj._dtype]
+		print('  ' * nesting + f'VALUE {dtype}')
+	else:
+		print('  ' * nesting + f'OP {obj._operation}')
 
-	if (isinstance(obj, BlockExpression)):
-		for expression in obj._expression_list:
+	if (obj._dtype == ASTNode.TYPE_BLOCK):
+		for expression in obj._value:
 			_print_ast(expression, nesting + 1)
-	elif (isinstance(obj, ListExpression)):
-		for value in obj._values:
+	elif (obj._dtype == ASTNode.TYPE_LIST):
+		for value in obj._value:
 			_print_ast(value, nesting + 1)
-	elif (isinstance(obj, StatementExpression)):
-		for member in obj.__dict__:
-			if (member[:1] == '_' and isinstance(obj.__dict__[member], ScriptExpression)):
-				_print_ast(obj.__dict__[member], nesting + 1)
+	elif (isinstance(obj, ASTOperation)):
+		for arg in obj._args.values():
+			_print_ast(arg, nesting + 1)

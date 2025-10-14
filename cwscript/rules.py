@@ -1,24 +1,16 @@
 from cwscript.constants import *
-from cwscript.expression import *
+from cwscript.evaluator.operation import *
 
-# Importing the `expression` package here means that we cannot use
-# `rules` in any files that deal with expressions
+# Importing the `operation` package here means that we cannot use
+# `rules` in any files that deal with statements/operations
 # This is not a problem for now, since `rules` is mostly useful
-# for the lexer/parser, but in the case that expressions do need this
+# for the lexer/parser, but in the case that operators do need this
 # in the future, the statement/operator definitions should be moved
-# to a separate file to avoid importing `expression` here
+# to a separate file to avoid importing `operation` here
 
-# EXPRESSIONS
+# STATEMENTS
 
-# Expression arguments are formatted as "name|type"
-# Expression arguments can take 3 categories of inputs:
-# 1) '*':      Dynamic expressions (expressions, statements, operations)
-# 2) 'block':  Block statements (the only type of static statement)
-# 3) '_':      Keywords (specific to statement definition)
-
-ARG_DYNAMIC = 0
-ARG_BLOCK = 1
-ARG_KEYWORD = 2
+# Statement arguments are formatted as "name|is_keyword"
 
 def _define_statement(root, arguments, statement_class):
 
@@ -26,9 +18,9 @@ def _define_statement(root, arguments, statement_class):
 	_statements[root] = statement_class
 	_statement_args[root] = []
 	for arg in arguments:
-		name, type_ = arg.split(': ')
-		type_ = ['*', 'block', '_'].index(type_)
-		_statement_args[root].append((name, type_))
+		is_keyword = '|KEYWORD' in arg
+		name = arg[:-8] if is_keyword else arg
+		_statement_args[root].append((name, is_keyword))
 
 def is_statement(root):
 
@@ -52,29 +44,29 @@ _statements = {}
 _statement_args = {}
 
 # print [value: string]
-_define_statement('print', ['value: *'], PrintStatement)
+_define_statement('print', ['value'], PrintStatement)
 # local
 _define_statement('local', [], LocalScopeStatement)
 # global
 _define_statement('global', [], GlobalScopeStatement)
 # if [condition: *] [body: block]
-_define_statement('if', ['condition: *', 'body: block'], IfStatement)
-# do [body: block]
-_define_statement('do', ['body: block'], DoStatement)
+_define_statement('if', ['condition', 'body'], IfStatement)
 # while [condition: *] [body: block]
-_define_statement('while', ['condition: *', 'body: block'], WhileLoopStatement)
+_define_statement('while', ['condition', 'body'], WhileLoopStatement)
 # for [iterator: var] in [list: list] [body: block]
-_define_statement('for', ['iterator: *', 'in: _', 'list: *', 'body: block'], ForLoopStatement)
+_define_statement('for', ['iterator', 'in|KEYWORD', 'list', 'body'], ForLoopStatement)
 # continue [value: *]
 _define_statement('continue', [], ContinueStatement)
 # break [value: *]
 _define_statement('break', [], BreakStatement)
 # function [parameters: list] [body: block]
-_define_statement('function', ['parameters: *', 'body: block'], FunctionStatement)
+_define_statement('function', ['parameters', 'body'], FunctionStatement)
 # return [value: *]
-_define_statement('return', ['value: *'], ReturnStatement)
+_define_statement('return', ['value'], ReturnStatement)
+# call [function: function] [args: list]
+_define_statement('call', ['function', 'args'], CallStatement)
 # max [value_1: int|float] [value_2: int|float]
-_define_statement('max', ['value_1: *', 'value_2: *'], MaxStatement)
+_define_statement('max', ['value_1', 'value_2'], MaxStatement)
 
 # OPERATORS
 
@@ -119,22 +111,22 @@ def get_prefix_op_class(op_string):
 
 _binary_ops = {}
 _op_groups = []
-_define_op_group(True, '??', [OperatorChainExpression])
-_define_op_group(True, ': ->', [OperatorIndexExpression, OperatorCallExpression])
-_define_op_group(True, '**', [OperatorExponentExpression])
-_define_op_group(True, '* / // %', [OperatorMultiplyExpression, OperatorFloatDivideExpression, OperatorIntDivideExpression, OperatorModulusExpression])
-_define_op_group(True, '+ -', [OperatorAddExpression, OperatorSubtractExpression])
-_define_op_group(True, '> < >= <= == !=', [OperatorGreaterExpression, OperatorLessExpression, OperatorGreaterEqualExpression, OperatorLessEqualExpression, OperatorEqualExpression, OperatorUnequalExpression])
-_define_op_group(True, '&&', [OperatorAndExpression])
-_define_op_group(True, '||', [OperatorOrExpression])
-_define_op_group(False, '= += -= *= /= //= %= **=', [OperatorAssignExpression, OperatorAssignAddExpression, OperatorAssignSubtractExpression, OperatorAssignMultiplyExpression, OperatorAssignFloatDivideExpression, OperatorAssignIntDivideExpression, OperatorAssignModulusExpression, OperatorAssignExponentExpression])
+_define_op_group(True, '??', [OperatorChain])
+_define_op_group(True, ':', [OperatorIndex])
+_define_op_group(True, '**', [OperatorExponent])
+_define_op_group(True, '* / // %', [OperatorMultiply, OperatorFloatDivide, OperatorIntDivide, OperatorModulus])
+_define_op_group(True, '+ -', [OperatorAdd, OperatorSubtract])
+_define_op_group(True, '> < >= <= == !=', [OperatorGreater, OperatorLess, OperatorGreaterEqual, OperatorLessEqual, OperatorEqual, OperatorUnequal])
+_define_op_group(True, '&&', [OperatorAnd])
+_define_op_group(True, '||', [OperatorOr])
+_define_op_group(False, '= += -= *= /= //= %= **=', [OperatorAssign, OperatorAssignAdd, OperatorAssignSubtract, OperatorAssignMultiply, OperatorAssignFloatDivide, OperatorAssignIntDivide, OperatorAssignModulus, OperatorAssignExponent])
 
 _prefix_ops = {}
-_define_prefix_op('-', OperatorNegativeExpression)
-_define_prefix_op('!', OperatorNotExpression)
-_define_prefix_op('++', OperatorIncrementExpression)
-_define_prefix_op('--', OperatorDecrementExpression)
-_define_prefix_op('!!', OperatorInvertExpression)
+_define_prefix_op('-', OperatorNegative)
+_define_prefix_op('!', OperatorNot)
+_define_prefix_op('++', OperatorIncrement)
+_define_prefix_op('--', OperatorDecrement)
+_define_prefix_op('!!', OperatorInvert)
 
 # MISC
 
