@@ -11,10 +11,14 @@ class CWError (Exception):
 
     def __str__(self):
 
+        return "\n\n" + self.str()
+
+    def str(self):
+
         if (self._context is None):
-            return f"\n\n>>> {self._type} at [UNKNOWN LINE]: {self._message}"
+            return f">>> {self._type} at [UNKNOWN LINE]: {self._message}"
         else:
-            return f"\n\n{self._context}\n>>> {self._type} at line {self._line + 1}: {self._message}"
+            return f">>> {self._type} at line {self._line + 1}: {self._message}\n{self._context}"
 
     def get_line(self):
 

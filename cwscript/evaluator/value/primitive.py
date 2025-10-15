@@ -19,12 +19,22 @@ class NullValue (ScriptValue):
 
 		return False
 
-# Both IntValue and FloatValue are derived from this
+# BoolValue, IntValue, and FloatValue are derived from this
 # Its main purpose is to allow type checking
 
 class NumericValue (ScriptValue):
 
-	pass
+	def get_negative(self, evaluator):
+
+		raise NotImplementedError()
+
+	def get_incremented(self, evaluator):
+
+		raise NotImplementedError()
+
+	def get_decremented(self, evaluator):
+
+		raise NotImplementedError()
 
 # As a NumericValue, bools can be used as if they were 1 or 0
 # in numeric expressions
@@ -39,6 +49,18 @@ class BoolValue (NumericValue):
 	def get_value(self):
 
 		return int(self._value)
+
+	def get_negative(self, evaluator):
+
+		return IntValue(evaluator, -int(self._value))
+
+	def get_incremented(self, evaluator):
+
+		return IntValue(evaluator, int(self._value) + 1)
+
+	def get_decremented(self, evaluator):
+
+		return IntValue(evaluator, int(self._value) - 1)
 
 	def to_string(self, evaluator, isolated = True):
 
@@ -63,6 +85,18 @@ class IntValue (NumericValue):
 
 		return self._value
 
+	def get_negative(self, evaluator):
+
+		return IntValue(evaluator, -self._value)
+
+	def get_incremented(self, evaluator):
+
+		return IntValue(evaluator, self._value + 1)
+
+	def get_decremented(self, evaluator):
+
+		return IntValue(evaluator, self._value - 1)
+
 	def to_string(self, evaluator, isolated = True):
 
 		return str(self._value)
@@ -85,6 +119,18 @@ class FloatValue (NumericValue):
 	def get_value(self):
 
 		return self._value
+
+	def get_negative(self, evaluator):
+
+		return FloatValue(evaluator, -self._value)
+
+	def get_incremented(self, evaluator):
+
+		return FloatValue(evaluator, self._value + 1)
+
+	def get_decremented(self, evaluator):
+
+		return FloatValue(evaluator, self._value - 1)
 
 	def to_string(self, evaluator, isolated = True):
 

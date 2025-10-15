@@ -19,6 +19,7 @@ class CodeEvaluator:
 		self._main_stack = [self._main.evaluate(self, ScriptValue, True)]
 		self._last_value = None
 		self._pending_interrupt = None
+		self._error_line = 0
 
 		# Scopes are stored separately from the stack, internally as objects
 
@@ -30,6 +31,12 @@ class CodeEvaluator:
 	# This returns false when the stack is empty, i.e. the last line has executed
 
 	def run_next(self):
+
+		# Store the current line of execution
+		# This way, we can still trace what line caused an error even if
+		# it unwinds the stack
+
+		self._error_line = self._main_stack[-1].get_line()
 
 		# Always operate on the topmost operation
 		# It will return a ScriptValue when it's finished, and otherwise returns None
@@ -70,7 +77,6 @@ class CodeEvaluator:
 			if (len(self._main_stack) == 0):
 				raise CWRuntimeError("Unhandled interrupt", self.get_line())
 
-		# print_stack(self._main_stack)
 		return len(self._main_stack) > 0
 
 	def request_value(self, node, value_type, eval_vars = True):
@@ -84,12 +90,12 @@ class CodeEvaluator:
 			raise RuntimeError("Invalid request output")
 
 	# Returns the line where execution is
-	# Propogates downward until a valid stack item is found
-	# TODO: Implement using new AST system
+	# Note that blocks have a special implementation of get_line()
+	# to return the proper line when errors are raised by lone expressions
 
 	def get_line(self):
 
-		return None
+		return self._error_line
 
 	def get_global_scope(self):
 

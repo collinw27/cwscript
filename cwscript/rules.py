@@ -111,7 +111,6 @@ def get_prefix_op_class(op_string):
 
 _binary_ops = {}
 _op_groups = []
-_define_op_group(True, '??', [OperatorChain])
 _define_op_group(True, ':', [OperatorIndex])
 _define_op_group(True, '**', [OperatorExponent])
 _define_op_group(True, '* / // %', [OperatorMultiply, OperatorFloatDivide, OperatorIntDivide, OperatorModulus])

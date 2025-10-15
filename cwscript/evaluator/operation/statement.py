@@ -18,9 +18,9 @@ class PrintStatement (StackBasicOperation):
 
 class LocalScopeStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 
 	def _evaluate(self, evaluator, last_value):
 
@@ -28,9 +28,9 @@ class LocalScopeStatement (StackOperation):
 
 class GlobalScopeStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 
 	def _evaluate(self, evaluator, last_value):
 
@@ -38,9 +38,9 @@ class GlobalScopeStatement (StackOperation):
 
 class IfStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._args = args
 		self._step = 0
 
@@ -61,9 +61,9 @@ class IfStatement (StackOperation):
 
 class WhileLoopStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._args = args
 		self._step = 0
 		self._used_break = False
@@ -102,9 +102,9 @@ class WhileLoopStatement (StackOperation):
 
 class ForLoopStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._args = args
 		self._step = 0
 		self._used_break = False
@@ -152,9 +152,9 @@ class ForLoopStatement (StackOperation):
 
 class ContinueStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 
 	def _evaluate(self, evaluator, last_value):
 
@@ -163,9 +163,9 @@ class ContinueStatement (StackOperation):
 
 class BreakStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 
 	def _evaluate(self, evaluator, last_value):
 
@@ -179,9 +179,9 @@ class BreakStatement (StackOperation):
 
 class FunctionStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._args = args
 
 	def _evaluate(self, evaluator, last_value):
@@ -204,9 +204,9 @@ class ReturnStatement (StackBasicOperation):
 
 class CallStatement (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._args = args
 		self._step = 0
 		self._return_value = None

@@ -2,10 +2,15 @@ from cwscript.evaluator.value import *
 
 class StackOperation:
 
-	def __init__(self, value_type, eval_vars):
+	def __init__(self, line, value_type, eval_vars):
 
+		self._line = line
 		self._value_type = value_type
 		self._eval_vars = eval_vars
+
+	def get_line(self):
+
+		return self._line
 
 	# A simple wrapper to type-check the return value and evaluate variables
 	# This prevents all inherited classes from needing to do this,
@@ -34,7 +39,7 @@ class StackOperation:
 
 class StackBlock (StackOperation):
 
-	def __init__(self, value, value_type, eval_vars):
+	def __init__(self, value, line, value_type, eval_vars):
 
 		# Value type isn't checked until execution is finished
 		# even though it's technically predetermined (null)
@@ -42,7 +47,7 @@ class StackBlock (StackOperation):
 		# ran before the statement is evaluated and any type-related errors are thrown
 		# StackList uses the same method
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._statements = value
 		self._pc = 0
 
@@ -50,14 +55,15 @@ class StackBlock (StackOperation):
 
 		if (self._pc >= len(self._statements)):
 			return NullValue(evaluator)
+		self._line = self._statements[self._pc].get_line()
 		evaluator.request_value(self._statements[self._pc], ScriptValue)
 		self._pc += 1
 
 class StackList (StackOperation):
 
-	def __init__(self, value, value_type, eval_vars):
+	def __init__(self, value, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._values = value
 		self._output = []
 
@@ -82,9 +88,9 @@ class StackList (StackOperation):
 
 class StackBasicOperation (StackOperation):
 
-	def __init__(self, args, value_type, eval_vars):
+	def __init__(self, args, line, value_type, eval_vars):
 
-		super().__init__(value_type, eval_vars)
+		super().__init__(line, value_type, eval_vars)
 		self._args = args
 		self._args_evaluated = []
 		self._arg_requests = self._define_args()

@@ -74,7 +74,7 @@ class ASTValue (ASTNode):
 	def evaluate(self, evaluator, value_type, eval_vars):
 
 		if (self._dtype == self.TYPE_BLOCK):
-			return StackBlock(self._value, value_type, eval_vars)
+			return StackBlock(self._value, self._line, value_type, eval_vars)
 		elif (self._dtype == self.TYPE_NULL):
 			return evaluator.assert_type(NullValue(evaluator), value_type)
 		elif (self._dtype == self.TYPE_NULL):
@@ -102,7 +102,7 @@ class ASTValue (ASTNode):
 				return evaluator.assert_type(var_value, value_type)
 				
 		elif (self._dtype == self.TYPE_LIST):
-			return StackList(self._value, value_type, eval_vars)
+			return StackList(self._value, self._line, value_type, eval_vars)
 		elif (self._dtype == self.TYPE_OTHER):
 			raise RuntimeError("Invalid ASTValue type")
 
@@ -147,16 +147,16 @@ class ASTValue (ASTNode):
 		# other characters _ that would be inconsistent with the specification
 
 		if (len(string) == 0):
-			raise MCRParseError(f"Empty integer", line)
+			raise CWParseError(f"Empty integer", line)
 		elif (string[0] not in '1234567890-'):
-			raise MCRParseError(f"Unexpected character in integer '{string}'", line)
+			raise CWParseError(f"Unexpected character in integer '{string}'", line)
 		elif (len([c for c in string[1:] if c not in '1234567890']) > 0):
-			raise MCRParseError(f"Unexpected character in integer '{string}'", line)
+			raise CWParseError(f"Unexpected character in integer '{string}'", line)
 
 		is_negative = (string[0] == '-')
 		if (is_negative):
 			if (len(string) == 1):
-				raise MCRParseError(f"Integer '{string}' missing numeric part", line)
+				raise CWParseError(f"Integer '{string}' missing numeric part", line)
 			string = string[1:]
 		return ASTValue(line, ASTNode.TYPE_INT, int(string) * (-1 if is_negative else 1))
 
@@ -169,25 +169,25 @@ class ASTValue (ASTNode):
 		# TODO: Accept scientific notation
 
 		if (len(string) == 0):
-			raise MCRParseError(f"Empty float", line)
+			raise CWParseError(f"Empty float", line)
 		elif (string[0] not in '1234567890-'):
-			raise MCRParseError(f"Unexpected character in float '{string}'", line)
+			raise CWParseError(f"Unexpected character in float '{string}'", line)
 		is_negative = (string[0] == '-')
+		old_string = string
 		if (is_negative):
 			if (len(string) == 1):
-				raise MCRParseError(f"Float '{string}' missing numeric part", line)
-			old_string = string
+				raise CWParseError(f"Float '{string}' missing numeric part", line)
 			string = string[1:]
 
 		# Do remaning checks now that negative is dealt with
 		# One decimal point is allowed, but not at beginning or end
 
-		if ([c for c in string if c not in '1234567890.'] > 0):
-			raise MCRParseError(f"Unexpected character in float '{old_string}'", line)
+		if (len([c for c in string if c not in '1234567890.']) > 0):
+			raise CWParseError(f"Unexpected character in float '{old_string}'", line)
 		elif (string.count('.') > 1):
-			raise MCRParseError(f"Duplicate decimal in float '{old_string}'", line)
-		elif (string[0] or string[-1]):
-			raise MCRParseError(f"Decimal cannot begin or end float, '{old_string}'", line)
+			raise CWParseError(f"Duplicate decimal in float '{old_string}'", line)
+		elif (string[0] == '.' or string[-1] == '.'):
+			raise CWParseError(f"Decimal cannot begin or end float, '{old_string}'", line)
 
 		return ASTValue(line, ASTNode.TYPE_FLOAT, float(string) * (-1 if is_negative else 1))
 
@@ -239,4 +239,4 @@ class ASTOperation (ASTNode):
 
 	def evaluate(self, evaluator, value_type, eval_vars):
 
-		return self._operation(self._args, value_type, eval_vars)
+		return self._operation(self._args, self._line, value_type, eval_vars)
