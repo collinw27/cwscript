@@ -4,11 +4,21 @@ from cwscript.evaluator.operation.base import *
 from cwscript.evaluator.operation.base import _ArgRequest as ArgRequest
 from cwscript.evaluator.value import *
 
-# Helper methods for arithmetic
+# Helper function for arithmetic
+# Many functions use integer arithmetic unless float is present
+# Bools act as though they were integers
 
 def _is_float_op(value_1, value_2):
 
 	return (isinstance(value_1, FloatValue) or isinstance(value_2, FloatValue))
+
+def _binary_op_class(value_1, value_2):
+
+	return FloatValue if (isinstance(value_1, FloatValue) or isinstance(value_2, FloatValue)) else IntValue
+
+def _prefix_op_class(value):
+
+	return FloatValue if (isinstance(value, FloatValue)) else IntValue
 
 # Add two numeric values
 # Later, will also support list concatenation
@@ -17,27 +27,18 @@ def _is_float_op(value_1, value_2):
 
 def _op_add(evaluator, op_1, op_2):
 
-	if (_is_float_op(op_1, op_2)):
-		return FloatValue(evaluator, op_1.get_value() + op_2.get_value())
-	else:
-		return IntValue(evaluator, op_1.get_value() + op_2.get_value())
+	return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() + op_2.get_value())
 
 # Uses integer arithmetic unless float is present
 # Assumes inputs are valid
 
 def _op_subtract(evaluator, op_1, op_2):
 
-	if (_is_float_op(op_1, op_2)):
-		return FloatValue(evaluator, op_1.get_value() - op_2.get_value())
-	else:
-		return IntValue(evaluator, op_1.get_value() - op_2.get_value())
+	return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() - op_2.get_value())
 
 def _op_multiply(evaluator, op_1, op_2):
 
-	if (_is_float_op(op_1, op_2)):
-		return FloatValue(evaluator, op_1.get_value() * op_2.get_value())
-	else:
-		return IntValue(evaluator, op_1.get_value() * op_2.get_value())
+	return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() * op_2.get_value())
 
 # Float divide always returns a float,
 # even if an integer result doesn't lose precision
@@ -64,10 +65,7 @@ def _op_modulus(evaluator, op_1, op_2):
 
 	if (op_2.get_value() == 0):
 		raise CWRuntimeError("Division by zero", evaluator.get_line())
-	if (_is_float_op(op_1, op_2)):
-		return FloatValue(evaluator, op_1.get_value() % op_2.get_value())
-	else:
-		return IntValue(evaluator, op_1.get_value() % op_2.get_value())
+	return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() % op_2.get_value())
 
 # Unlike other operations, two integers return a float if
 # the exponent is <0
@@ -84,12 +82,17 @@ def _op_exponent(evaluator, op_1, op_2):
 		else:
 			return FloatValue(evaluator, op_1.get_value() ** op_2.get_value())
 
+# Accepts containers or strings
+# Containers return a VariableValue, and can therefore be used
+# to modify the given index
+# Strings on the other hand can only read, and thus return a string
+
 class OperatorIndex (StackBasicOperation):
 
 	def _define_args(self):
 
 		return [
-			ArgRequest('op_1', ContainerValue),
+			ArgRequest('op_1', ScriptValue),
 			ArgRequest('op_2', ScriptValue)
 		]
 
@@ -99,10 +102,17 @@ class OperatorIndex (StackBasicOperation):
 			evaluator.assert_type(args[1], StringValue)
 			return VariableValue(evaluator, args[0], args[1].get_value())
 		elif (isinstance(args[0], ListValue)):
-			evaluator.assert_type(args[1], IntValue)
+			evaluator.assert_type(args[1], IntegralValue)
 			return VariableValue(evaluator, args[0], args[1].get_value())
+		elif (isinstance(args[0], StringValue)):
+			evaluator.assert_type(args[1], IntegralValue)
+			string = args[0].get_value()
+			index = args[1].get_value()
+			if not (-len(string) <= index < len(string)):
+				raise CWRuntimeError("String index '%s' out of bounds" % index, evaluator.get_line())
+			return StringValue(evaluator, string[index])
 		else:
-			raise RuntimeError("Invalid container")
+			evaluator.unmatched_type_error(args[0], [StringValue, ContainerValue])
 
 class OperatorExponent (StackBasicOperation):
 
@@ -453,7 +463,7 @@ class OperatorNegative (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return args[0].get_negative(evaluator)
+		return _prefix_op_class(args[0])(evaluator, args[0].get_value() * -1)
 
 class OperatorNot (StackBasicOperation):
 
@@ -478,7 +488,7 @@ class OperatorIncrement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		current = evaluator.assert_type(args[0].get_var_value(evaluator), NumericValue)
-		args[0].set_var_value(evaluator, current.get_incremented(evaluator))
+		args[0].set_var_value(evaluator, _prefix_op_class(current)(evaluator, current.get_value() + 1))
 		return args[0]
 
 class OperatorDecrement (StackBasicOperation):
@@ -492,7 +502,7 @@ class OperatorDecrement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		current = evaluator.assert_type(args[0].get_var_value(evaluator), NumericValue)
-		args[0].set_var_value(evaluator, current.get_decremented(evaluator))
+		args[0].set_var_value(evaluator, _prefix_op_class(current)(evaluator, current.get_value() - 1))
 		return args[0]
 
 class OperatorInvert (StackBasicOperation):

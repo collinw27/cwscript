@@ -55,13 +55,13 @@ class ListValue (ContainerValue):
 	def set_field(self, evaluator, field, value):
 
 		if not (-len(self._values) <= field < len(self._values)):
-			raise CWRuntimeError("Array index '%s' out of bounds" % field, evaluator.get_line())
+			raise CWRuntimeError("List index '%s' out of bounds" % field, evaluator.get_line())
 		self._values[field] = value
 
 	def get_field(self, evaluator, field):
 
 		if not (-len(self._values) <= field < len(self._values)):
-			raise CWRuntimeError("Array index '%s' out of bounds" % field, evaluator.get_line())
+			raise CWRuntimeError("List index '%s' out of bounds" % field, evaluator.get_line())
 		return self._values[field]
 
 	def to_string(self, evaluator, isolated = True):
@@ -92,6 +92,12 @@ class ObjectValue (ContainerValue):
 		super().__init__(evaluator)
 		self._values = {}
 
+	# Returns a mutable reference to the dictionary
+
+	def get_dict(self):
+
+		return self._values
+
 	# `field` should be string
 
 	def set_field(self, evaluator, field, value):
@@ -106,7 +112,9 @@ class ObjectValue (ContainerValue):
 
 	def to_string(self, evaluator, isolated = True):
 
-		return f"OBJ:0x{self._id:0x}"
+		return "{%s}" % (", ".join(
+			[f"{key}: {value.to_string(evaluator, False)}" for key, value in self._values.items()]
+		))
 
 	# Compare all entries using overloaded equal
 

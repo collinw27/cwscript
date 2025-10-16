@@ -24,22 +24,19 @@ class NullValue (ScriptValue):
 
 class NumericValue (ScriptValue):
 
-	def get_negative(self, evaluator):
+	pass
 
-		raise NotImplementedError()
+# Similar to NumericValue, but excludes floats for things like
+# array indexing
 
-	def get_incremented(self, evaluator):
+class IntegralValue (NumericValue):
 
-		raise NotImplementedError()
-
-	def get_decremented(self, evaluator):
-
-		raise NotImplementedError()
+	pass
 
 # As a NumericValue, bools can be used as if they were 1 or 0
 # in numeric expressions
 
-class BoolValue (NumericValue):
+class BoolValue (IntegralValue):
 
 	def __init__(self, evaluator, value):
 
@@ -49,18 +46,6 @@ class BoolValue (NumericValue):
 	def get_value(self):
 
 		return int(self._value)
-
-	def get_negative(self, evaluator):
-
-		return IntValue(evaluator, -int(self._value))
-
-	def get_incremented(self, evaluator):
-
-		return IntValue(evaluator, int(self._value) + 1)
-
-	def get_decremented(self, evaluator):
-
-		return IntValue(evaluator, int(self._value) - 1)
 
 	def to_string(self, evaluator, isolated = True):
 
@@ -74,7 +59,7 @@ class BoolValue (NumericValue):
 
 		return self._value
 
-class IntValue (NumericValue):
+class IntValue (IntegralValue):
 
 	def __init__(self, evaluator, value):
 
@@ -84,18 +69,6 @@ class IntValue (NumericValue):
 	def get_value(self):
 
 		return self._value
-
-	def get_negative(self, evaluator):
-
-		return IntValue(evaluator, -self._value)
-
-	def get_incremented(self, evaluator):
-
-		return IntValue(evaluator, self._value + 1)
-
-	def get_decremented(self, evaluator):
-
-		return IntValue(evaluator, self._value - 1)
 
 	def to_string(self, evaluator, isolated = True):
 
@@ -119,18 +92,6 @@ class FloatValue (NumericValue):
 	def get_value(self):
 
 		return self._value
-
-	def get_negative(self, evaluator):
-
-		return FloatValue(evaluator, -self._value)
-
-	def get_incremented(self, evaluator):
-
-		return FloatValue(evaluator, self._value + 1)
-
-	def get_decremented(self, evaluator):
-
-		return FloatValue(evaluator, self._value - 1)
 
 	def to_string(self, evaluator, isolated = True):
 

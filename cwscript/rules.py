@@ -59,14 +59,44 @@ _define_statement('for', ['iterator', 'in|KEYWORD', 'list', 'body'], ForLoopStat
 _define_statement('continue', [], ContinueStatement)
 # break [value: *]
 _define_statement('break', [], BreakStatement)
+# len [value: string|container]
+_define_statement('len', ['value'], LengthStatement)
+# slice [value: string|list] [start: int] [end: int]
+_define_statement('slice', ['value', 'start', 'end'], SliceStatement)
+# slice_after [value: string|list] [start: int] [end: int]
+_define_statement('slice_after', ['value', 'start'], SliceAfterStatement)
+# find [source: string|container] [value: *]
+_define_statement('find', ['source', 'value'], FindStatement)
+# replace [source: string] [old: string] with [new: string]
+_define_statement('replace', ['source', 'old', 'with|KEYWORD', 'new'], StringReplaceStatement)
+# upper [source: string]
+_define_statement('upper', ['source'], StringUpperCaseStatement)
+# lower [source: string]
+_define_statement('lower', ['source'], StringLowerCaseStatement)
+# merge [list_1: list] [list_2: list]
+_define_statement('merge', ['list_1', 'list_2'], ListMergeStatement)
+# pop [source: container] [index: *]
+_define_statement('pop', ['source', 'index'], ContainerPopStatement)
+# range [end: int]
+_define_statement('range', ['end'], RangeStatement)
+# adv_range [end: int]
+_define_statement('adv_range', ['start', 'end', 'step'], AdvancedRangeStatement)
 # function [parameters: list] [body: block]
 _define_statement('function', ['parameters', 'body'], FunctionStatement)
 # return [value: *]
 _define_statement('return', ['value'], ReturnStatement)
 # call [function: function] [args: list]
 _define_statement('call', ['function', 'args'], CallStatement)
+# object [body: block]
+_define_statement('object', ['body'], ObjectStatement)
+# o_keys [object: object]
+_define_statement('o_keys', ['object'], ObjectKeysStatement)
+# o_values [object: object]
+_define_statement('o_values', ['object'], ObjectValuesStatement)
 # max [value_1: int|float] [value_2: int|float]
 _define_statement('max', ['value_1', 'value_2'], MaxStatement)
+# min [value_1: int|float] [value_2: int|float]
+_define_statement('min', ['value_1', 'value_2'], MinStatement)
 
 # OPERATORS
 

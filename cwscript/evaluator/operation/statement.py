@@ -172,6 +172,203 @@ class BreakStatement (StackOperation):
 		evaluator.raise_interrupt(BreakInterrupt())
 		return NullValue(evaluator)
 
+class LengthStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], StringValue)):
+			return IntValue(evaluator, len(args[0].get_value()))
+		elif (isinstance(args[0], ListValue)):
+			return IntValue(evaluator, len(args[0].get_list()))
+		elif (isinstance(args[0], ObjectValue)):
+			return IntValue(evaluator, len(args[0].get_dict()))
+		else:
+			evaluator.unmatched_type_error(args[0], [StringValue, ContainerValue])
+
+class SliceStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue),
+			ArgRequest('start', IntegralValue),
+			ArgRequest('end', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		# Like Python, this function doesn't care about bounds checking
+
+		if (isinstance(args[0], StringValue)):
+			return StringValue(evaluator, args[0].get_value()[args[1].get_value():args[2].get_value()])
+		elif (isinstance(args[0], ListValue)):
+			return ListValue(evaluator, args[0].get_list()[args[1].get_value():args[2].get_value()])
+		else:
+			evaluator.unmatched_type_error(args[0], [StringValue, ListValue])
+
+class SliceAfterStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue),
+			ArgRequest('start', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		# Like Python, this function doesn't care about bounds checking
+
+		if (isinstance(args[0], StringValue)):
+			return StringValue(evaluator, args[0].get_value()[args[1].get_value():])
+		elif (isinstance(args[0], ListValue)):
+			return ListValue(evaluator, args[0].get_list()[args[1].get_value():])
+		else:
+			evaluator.unmatched_type_error(args[0], [StringValue, ListValue])
+
+# String & list: try to find index, return -1 if cannot
+# Object: try to find key (arbitrary choice if multiple), otherwise return null
+
+class FindStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', ScriptValue),
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], StringValue)):
+			evaluator.assert_type(args[1], StringValue)
+			return IntValue(evaluator, args[0].get_value().find(args[1].get_value()))
+		elif (isinstance(args[0], ListValue)):
+			for i, value in enumerate(args[0].get_list()):
+				if (value.is_equal(evaluator, args[1])):
+					return IntValue(evaluator, i)
+			return IntValue(evaluator, -1)
+		elif (isinstance(args[0], ObjectValue)):
+			for key, value in args[0].get_dict().items():
+				if (value.is_equal(evaluator, args[1])):
+					return StringValue(evaluator, key)
+			return NullValue(evaluator)
+		else:
+			evaluator.unmatched_type_error(args[1], [StringValue, ContainerValue])
+
+class StringReplaceStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', StringValue),
+			ArgRequest('old', StringValue),
+			ArgRequest('new', StringValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return StringValue(evaluator, args[0].get_value().replace(args[1].get_value(), args[2].get_value()))
+
+class StringUpperCaseStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', StringValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return StringValue(evaluator, args[0].get_value().upper())
+
+class StringLowerCaseStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', StringValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return StringValue(evaluator, args[0].get_value().lower())
+
+class ListMergeStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('list_1', ListValue),
+			ArgRequest('list_2', ListValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return ListValue(evaluator, args[0].get_list() + args[1].get_list())
+
+# Pops value from list/object, returning the removed value
+
+class ContainerPopStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', ContainerValue),
+			ArgRequest('index', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], ListValue)):
+			evaluator.assert_type(args[1], IntegralValue)
+			size = len(args[0].get_list())
+			if not (-size <= args[1].get_value() < size):
+				raise CWRuntimeError("List index '%s' out of bounds" % args[1].get_value(), evaluator.get_line())
+			return args[0].get_list().pop(args[1].get_value())
+		else:
+			evaluator.assert_type(args[1], StringValue)
+			if (args[1].get_value() not in args[0].get_dict()):
+				raise CWRuntimeError("Invalid variable '%s'" % args[1].get_value(), evaluator.get_line())
+			return args[0].get_dict().pop(args[1].get_value())
+
+class RangeStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('end', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return ListValue(evaluator, [IntValue(evaluator, a) for a in range(args[0].get_value())])
+
+class AdvancedRangeStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('start', IntegralValue),
+			ArgRequest('end', IntegralValue),
+			ArgRequest('step', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		# Returns nothing if the iterator will never terminate
+		# (i.e. step direction goes away from end value)
+		# Luckily, Python already works like this
+
+		range_iter = range(args[0].get_value(), args[1].get_value(), args[2].get_value())
+		return ListValue(evaluator, [IntValue(evaluator, a) for a in range_iter])
+
 # In the previous iteration of this project
 # functions were automatically 'bound' to the current object
 # Since I'm not sure how 'binding' functions will work in the future,
@@ -266,6 +463,64 @@ class CallStatement (StackOperation):
 		elif (isinstance(interrupt, BreakInterrupt)):
 			raise CWRuntimeError("Invalid use of break", evaluator.get_line())
 
+# Creates an empty object and runs a code block on it
+# This is the intended replacement for dictionaries
+
+class ObjectStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+		self._args = args
+		self._step = 0
+
+	def _evaluate(self, evaluator, last_value):
+
+		if (self._step == 0):
+			self._obj = ObjectValue(evaluator)
+			evaluator.add_function_scope(self._obj)
+			evaluator.request_value(self._args['body'], ScriptValue)
+		else:
+			evaluator.pop_function_scope()
+			return self._obj
+		self._step += 1
+
+	# Return can be used in objects
+	# The return value will be ignored, however
+
+	def handle_interrupt(self, evaluator, interrupt):
+
+		if (isinstance(interrupt, ReturnInterrupt)):
+			evaluator.handle_interrupt()
+		elif (isinstance(interrupt, ContinueInterrupt)):
+			raise CWRuntimeError("Invalid use of continue", evaluator.get_line())
+		elif (isinstance(interrupt, BreakInterrupt)):
+			raise CWRuntimeError("Invalid use of break", evaluator.get_line())
+
+class ObjectKeysStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('object', ObjectValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return ListValue(evaluator, [StringValue(evaluator, key) for key in args[0].get_dict().keys()])
+
+class ObjectValuesStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('object', ObjectValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return ListValue(evaluator, list(args[0].get_dict().values()))
+
 class MaxStatement (StackBasicOperation):
 
 	def _define_args(self):
@@ -278,3 +533,16 @@ class MaxStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		return args[0] if (args[0].get_value() > args[1].get_value()) else args[1]
+
+class MinStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value_1', NumericValue),
+			ArgRequest('value_2', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return args[0] if (args[0].get_value() < args[1].get_value()) else args[1]

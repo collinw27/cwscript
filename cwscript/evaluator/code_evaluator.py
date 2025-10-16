@@ -92,10 +92,14 @@ class CodeEvaluator:
 	# Returns the line where execution is
 	# Note that blocks have a special implementation of get_line()
 	# to return the proper line when errors are raised by lone expressions
+	# Also, if the stack has fully unwinded, the previous _error_line is used
 
 	def get_line(self):
 
-		return self._error_line
+		if (len(self._main_stack) > 0):
+			return self._main_stack[-1].get_line()
+		else:
+			return self._error_line
 
 	def get_global_scope(self):
 
@@ -137,5 +141,20 @@ class CodeEvaluator:
 	def assert_type(self, value, value_type):
 
 		if (not isinstance(value, value_type)):
-			raise CWRuntimeError("Type assertion of type %s failed for value %s" % (value_type.__name__, value.to_string(self, False)), self.get_line())
+			raise CWRuntimeError("Type assertion of type %s failed for value: %s" % (
+				value_type.__name__, value.to_string(self, False)), self.get_line()
+			)
 		return value
+
+	# Simply used for printing an error message
+	# The actual type validation should be handled by the function itself
+	# (since usually, different types will require different behavior), and this
+	# should be thrown in an else block at the end if a valid type wasn't matched
+
+	def unmatched_type_error(self, value, value_types):
+
+		raise CWRuntimeError("Type assertion of types (%s) failed for value: %s" % (
+			", ".join([str(v.__name__) for v in value_types]),
+			value.to_string(self, False)),
+			self.get_line()
+		)
