@@ -1,7 +1,13 @@
+from math import floor, ceil, trunc, copysign, sin, cos, tan, asin, acos, atan, atan2, log
+
 from cwscript.evaluator.operation.base import *
 from cwscript.evaluator.operation.base import _ArgRequest as ArgRequest
 from cwscript.evaluator.operation.interrupt import *
 from cwscript.evaluator.value import *
+
+def _unary_op_class(value):
+
+	return FloatValue if (isinstance(value, FloatValue)) else IntValue
 
 class PrintStatement (StackBasicOperation):
 
@@ -521,6 +527,84 @@ class ObjectValuesStatement (StackBasicOperation):
 
 		return ListValue(evaluator, list(args[0].get_dict().values()))
 
+class RoundStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	# Unlike Python, 0.5 is always rounded away from zero
+
+	def _finish(self, evaluator, args):
+
+		value = args[0].get_value()
+		if (value % 1.0 == 0.5):
+			return IntValue(evaluator, copysign(ceil(abs(value)), value))
+		else:
+			return IntValue(evaluator, round(value))
+
+class FloorStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return IntValue(evaluator, floor(args[0].get_value()))
+
+class CeilStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return IntValue(evaluator, ceil(args[0].get_value()))
+
+class TruncateStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return IntValue(evaluator, trunc(args[0].get_value()))
+
+class AbsoluteValueStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return _unary_op_class(args[0])(evaluator, abs(args[0].get_value()))
+
+class SignStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return IntValue(evaluator, 0 if args[0].get_value() == 0 else copysign(1, args[0].get_value()))
+
 class MaxStatement (StackBasicOperation):
 
 	def _define_args(self):
@@ -546,3 +630,215 @@ class MinStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		return args[0] if (args[0].get_value() < args[1].get_value()) else args[1]
+
+# Error if empty list
+
+class MaxListStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('values', ListValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (not args[0].get_list()):
+			raise CWRuntimeError("List cannot be empty", evaluator.get_line())
+		val = args[0].get_list()[0]
+		for n in args[0].get_list()[1:]:
+			if (evaluator.assert_type(n, NumericValue).get_value() > val.get_value()):
+				val = n
+		return val
+
+class MinListStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('values', ListValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		min_val = None
+		val = args[0].get_list()[0]
+		for n in args[0].get_list()[1:]:
+			if (evaluator.assert_type(n, NumericValue).get_value() < val.get_value()):
+				val = n
+		return val
+
+class ClampStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue),
+			ArgRequest('min', NumericValue),
+			ArgRequest('max', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (args[1].get_value() > args[2].get_value()):
+			raise CWRuntimeError("Invalid clamp bounds", evaluator.get_line())
+		elif (args[0].get_value() < args[1].get_value()):
+			return args[1]
+		elif (args[0].get_value() > args[2].get_value()):
+			return args[2]
+		else:
+			return args[0]
+
+# Can also be achieved with exponent operator, but is sometimes
+# neater to do with a statement
+
+class SquareRootStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, args[0].get_value() ** 0.5)
+
+class LogStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('base', NumericValue),
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		try:
+			return FloatValue(evaluator, log(args[1].get_value(), args[0].get_value()))
+		except (ValueError, ZeroDivisionError):
+			raise CWRuntimeError("Invalid argument for logarithm", evaluator.get_line())
+
+class NaturalLogStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		try:
+			return FloatValue(evaluator, log(args[0].get_value()))
+		except (ValueError, ZeroDivisionError):
+			raise CWRuntimeError("Invalid argument for logarithm", evaluator.get_line())
+
+class SinStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, sin(args[0].get_value()))
+
+class CosStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, cos(args[0].get_value()))
+
+class TanStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, tan(args[0].get_value()))
+
+class ArcSinStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, asin(args[0].get_value()))
+
+class ArcCosStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, acos(args[0].get_value()))
+
+# Don't have to worry about domain because tangent is only undefined
+# for irrational values that cannot be represented with floating point
+
+class ArcTanStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, atan(args[0].get_value()))
+
+class ArcTan2Statement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('y', NumericValue),
+			ArgRequest('x', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return FloatValue(evaluator, atan2(args[0].get_value(), args[1].get_value()))
+
+class PiStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+
+	def _evaluate(self, evaluator, last_value):
+
+		return FloatValue(evaluator, 3.141592653589793)
+
+class EulerStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+
+	def _evaluate(self, evaluator, last_value):
+
+		return FloatValue(evaluator, 2.718281828459045)

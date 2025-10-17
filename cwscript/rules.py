@@ -61,9 +61,9 @@ _define_statement('continue', [], ContinueStatement)
 _define_statement('break', [], BreakStatement)
 # len [value: string|container]
 _define_statement('len', ['value'], LengthStatement)
-# slice [value: string|list] [start: int] [end: int]
+# slice [value: string|list] [start: integral] [end: integral]
 _define_statement('slice', ['value', 'start', 'end'], SliceStatement)
-# slice_after [value: string|list] [start: int] [end: int]
+# slice_after [value: string|list] [start: integral] [end: integral]
 _define_statement('slice_after', ['value', 'start'], SliceAfterStatement)
 # find [source: string|container] [value: *]
 _define_statement('find', ['source', 'value'], FindStatement)
@@ -77,9 +77,9 @@ _define_statement('lower', ['source'], StringLowerCaseStatement)
 _define_statement('merge', ['list_1', 'list_2'], ListMergeStatement)
 # pop [source: container] [index: *]
 _define_statement('pop', ['source', 'index'], ContainerPopStatement)
-# range [end: int]
+# range [end: integral]
 _define_statement('range', ['end'], RangeStatement)
-# adv_range [end: int]
+# adv_range [end: integral]
 _define_statement('adv_range', ['start', 'end', 'step'], AdvancedRangeStatement)
 # function [parameters: list] [body: block]
 _define_statement('function', ['parameters', 'body'], FunctionStatement)
@@ -93,10 +93,52 @@ _define_statement('object', ['body'], ObjectStatement)
 _define_statement('o_keys', ['object'], ObjectKeysStatement)
 # o_values [object: object]
 _define_statement('o_values', ['object'], ObjectValuesStatement)
-# max [value_1: int|float] [value_2: int|float]
+# round [value: num]
+_define_statement('round', ['value'], RoundStatement)
+# floor [value: num]
+_define_statement('floor', ['value'], FloorStatement)
+# ceil [value: num]
+_define_statement('ceil', ['value'], CeilStatement)
+# trunc [value: num]
+_define_statement('trunc', ['value'], TruncateStatement)
+# abs [value: num]
+_define_statement('abs', ['value'], AbsoluteValueStatement)
+# sign [value: num]
+_define_statement('sign', ['value'], SignStatement)
+# max [value_1: num] [value_2: num]
 _define_statement('max', ['value_1', 'value_2'], MaxStatement)
-# min [value_1: int|float] [value_2: int|float]
+# min [value_1: num] [value_2: num]
 _define_statement('min', ['value_1', 'value_2'], MinStatement)
+# maxl [values: list]
+_define_statement('maxl', ['values'], MaxListStatement)
+# minl [values: list]
+_define_statement('minl', ['values'], MinListStatement)
+# clamp [value: num] [min: num] [max: num]
+_define_statement('clamp', ['value', 'min', 'max'], ClampStatement)
+# sqrt [value: num]
+_define_statement('sqrt', ['value'], SquareRootStatement)
+# log [base: num] [value: num]
+_define_statement('log', ['base', 'value'], LogStatement)
+# ln [value: num]
+_define_statement('ln', ['value'], NaturalLogStatement)
+# sin [value: num]
+_define_statement('sin', ['value'], SinStatement)
+# cos [value: num]
+_define_statement('cos', ['value'], CosStatement)
+# tan [value: num]
+_define_statement('tan', ['value'], TanStatement)
+# asin [value: num]
+_define_statement('asin', ['value'], ArcSinStatement)
+# acos [value: num]
+_define_statement('acos', ['value'], ArcCosStatement)
+# atan [value: num]
+_define_statement('atan', ['value'], ArcTanStatement)
+# atan2 [y: num] [x: num]
+_define_statement('atan2', ['y', 'x'], ArcTan2Statement)
+# pi
+_define_statement('pi', [], PiStatement)
+# euler
+_define_statement('euler', [], EulerStatement)
 
 # OPERATORS
 

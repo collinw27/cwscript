@@ -63,7 +63,7 @@ def lex(code):
 			for i in range(2):
 				token += _c
 				_pop_char()
-				ops = [op for op in rules.get_op_strings() if len(op) > 1 and op[1] == _c]
+				ops = [op for op in rules.get_op_strings() if len(op) > (1 + i) and op[1+i] == _c]
 				if (not ops):
 					break
 				elif (i == 1):
