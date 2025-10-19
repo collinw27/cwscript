@@ -21,13 +21,23 @@ def _prefix_op_class(value):
 	return FloatValue if (isinstance(value, FloatValue)) else IntValue
 
 # Add two numeric values
-# Later, will also support list concatenation
+# Also supports string and list concatenation
 # Uses integer arithmetic unless float is present
 # Assumes inputs are valid
 
 def _op_add(evaluator, op_1, op_2):
 
-	return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() + op_2.get_value())
+	if (isinstance(op_1, NumericValue)):
+		evaluator.assert_type(op_2, NumericValue)
+		return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() + op_2.get_value())
+	elif (isinstance(op_1, StringValue)):
+		evaluator.assert_type(op_2, StringValue)
+		return StringValue(evaluator, op_1.get_value() + op_2.get_value())
+	elif (isinstance(op_1, ListValue)):
+		evaluator.assert_type(op_2, ListValue)
+		return ListValue(evaluator, op_1.get_list() + op_2.get_list())
+	else:
+		evaluator.unmatched_type_error(op_1, [NumericValue, StringValue, ListValue])
 
 # Uses integer arithmetic unless float is present
 # Assumes inputs are valid
@@ -184,8 +194,8 @@ class OperatorAdd (StackBasicOperation):
 	def _define_args(self):
 
 		return [
-			ArgRequest('op_1', NumericValue),
-			ArgRequest('op_2', NumericValue)
+			ArgRequest('op_1', ScriptValue),
+			ArgRequest('op_2', ScriptValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -348,18 +358,20 @@ class OperatorAssign (StackBasicOperation):
 		args[0].set_var_value(evaluator, args[1])
 		return args[0]
 
+# Type checking performed in _op add to also support concatenation
+
 class OperatorAssignAdd (StackBasicOperation):
 
 	def _define_args(self):
 
 		return [
 			ArgRequest('op_1', VariableValue, False),
-			ArgRequest('op_2', NumericValue)
+			ArgRequest('op_2', ScriptValue)
 		]
 
 	def _finish(self, evaluator, args):
 
-		current = evaluator.assert_type(args[0].get_var_value(evaluator), NumericValue)
+		current = args[0].get_var_value(evaluator)
 		args[0].set_var_value(evaluator, _op_add(evaluator, current, args[1]))
 		return args[0]
 

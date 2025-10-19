@@ -42,6 +42,18 @@ class GlobalScopeStatement (StackOperation):
 
 		return evaluator.get_global_scope()
 
+class StringCastStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return StringValue(evaluator, args[0].to_string(evaluator))
+
 class IfStatement (StackOperation):
 
 	def __init__(self, args, line, value_type, eval_vars):
@@ -822,6 +834,118 @@ class ArcTan2Statement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		return FloatValue(evaluator, atan2(args[0].get_value(), args[1].get_value()))
+
+# Returns new seed
+
+class RNGSetSeedStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		evaluator.set_rng(args[0].get_value())
+		return args[0]
+
+class RNGGetStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+
+	def _evaluate(self, evaluator, last_value):
+
+		return IntValue(evaluator, evaluator.get_rng())
+
+# Returns new seed
+
+class RNGResetStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+
+	def _evaluate(self, evaluator, last_value):
+
+		seed = evaluator.get_seed()
+		evaluator.set_rng(seed)
+		return IntValue(evaluator, seed)
+
+# Random float generated with 23 bits of precision
+# This matches the mantissa in IEEE 754
+
+class RandomFloatStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+
+	def _evaluate(self, evaluator, last_value):
+
+		num = (evaluator.next_rng() % 8388608) / 8388608
+		return FloatValue(evaluator, num)
+
+class RandomFloatRangeStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('min', NumericValue),
+			ArgRequest('max', NumericValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		float_start = args[0].get_value()
+		float_range = args[1].get_value() - float_start
+		num = (evaluator.next_rng() % 8388608) / 8388608
+		return FloatValue(evaluator, float_start + num * float_range)
+
+class RandomChoiceStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('list', ListValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		lst = args[0].get_list()
+		if (not lst):
+			return NullValue(evaluator)
+		else:
+			return lst[evaluator.next_rng() % len(lst)]
+
+class RandomIntegerStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('max', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return IntValue(evaluator, evaluator.next_rng() % args[0].get_value())
+
+class RandomIntegerRangeStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('min', IntegralValue),
+			ArgRequest('max', IntegralValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		int_start = args[0].get_value()
+		int_range = args[1].get_value() - int_start
+		return IntValue(evaluator, int_start + evaluator.next_rng() % int_range)
 
 class PiStatement (StackOperation):
 

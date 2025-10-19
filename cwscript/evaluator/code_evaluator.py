@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from cwscript.constants import *
 from cwscript.errors import *
 from cwscript import rules
@@ -24,6 +26,10 @@ class CodeEvaluator:
 		# Scopes are stored separately from the stack, internally as objects
 
 		self._scopes = [ObjectValue(self)]
+
+		# Instantiate a default RNG
+
+		self._rng = self.get_seed()
 
 	# Evaluates the next item in the evaluation stack
 	# This sometimes might amount to a trivial operation, like replacing a
@@ -158,3 +164,25 @@ class CodeEvaluator:
 			value.to_string(self, False)),
 			self.get_line()
 		)
+
+	# RNG is stored internally instead of with ScriptValues
+	# (Neater & avoids some overhead)
+
+	def get_seed(self):
+
+		return int(datetime.now().timestamp() * 1e6) % 2147483648
+
+	def get_rng(self):
+
+		return self._rng
+
+	def set_rng(self, value):
+
+		self._rng = value
+
+	# LCG values taken from C++ minstd_rand
+
+	def next_rng(self):
+
+		self._rng = self._rng * 48271 % 2147483648
+		return self._rng

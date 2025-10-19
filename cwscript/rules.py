@@ -49,6 +49,8 @@ _define_statement('print', ['value'], PrintStatement)
 _define_statement('local', [], LocalScopeStatement)
 # global
 _define_statement('global', [], GlobalScopeStatement)
+# str [value: *]
+_define_statement('str', ['value'], StringCastStatement)
 # if [condition: *] [body: block]
 _define_statement('if', ['condition', 'body'], IfStatement)
 # while [condition: *] [body: block]
@@ -135,6 +137,22 @@ _define_statement('acos', ['value'], ArcCosStatement)
 _define_statement('atan', ['value'], ArcTanStatement)
 # atan2 [y: num] [x: num]
 _define_statement('atan2', ['y', 'x'], ArcTan2Statement)
+# rng_seed [value: integral]
+_define_statement('rng_seed', ['value'], RNGSetSeedStatement)
+# rng_get
+_define_statement('rng_get', [], RNGGetStatement)
+# rng_reset
+_define_statement('rng_reset', [], RNGResetStatement)
+# random
+_define_statement('random', [], RandomFloatStatement)
+# random_range
+_define_statement('random_range', ['min', 'max'], RandomFloatRangeStatement)
+# random_choice [list: list]
+_define_statement('random_choice', ['list'], RandomChoiceStatement)
+# irandom [max: int]
+_define_statement('irandom', ['max'], RandomIntegerStatement)
+# irandom_range [min: int] [max: int]
+_define_statement('irandom_range', ['min', 'max'], RandomIntegerRangeStatement)
 # pi
 _define_statement('pi', [], PiStatement)
 # euler
