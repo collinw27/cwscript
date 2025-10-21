@@ -28,15 +28,16 @@ class NumericValue (ScriptValue):
 
 # Similar to NumericValue, but excludes floats for things like
 # array indexing
+# Important distinction: IntegerValue is more broad than IntValue
 
-class IntegralValue (NumericValue):
+class IntegerValue (NumericValue):
 
 	pass
 
 # As a NumericValue, bools can be used as if they were 1 or 0
 # in numeric expressions
 
-class BoolValue (IntegralValue):
+class BoolValue (IntegerValue):
 
 	def __init__(self, evaluator, value):
 
@@ -59,7 +60,7 @@ class BoolValue (IntegralValue):
 
 		return self._value
 
-class IntValue (IntegralValue):
+class IntValue (IntegerValue):
 
 	def __init__(self, evaluator, value):
 
@@ -133,24 +134,30 @@ class StringValue (ScriptValue):
 
 class VariableValue (ScriptValue):
 
-	def __init__(self, evaluator, parent, field):
+	def __init__(self, evaluator, parent, fields):
 
 		self._parent = parent
-		self._field = field
+		self._fields = fields
 
 	def set_var_value(self, evaluator, value):
 
-		self._parent.set_field(evaluator, self._field, value)
+		parent = self._parent
+		for field in self._fields[:-1]:
+			parent = parent.get_field(evaluator, field)
+		parent.set_field(evaluator, self._fields[-1], value)
 
 	def get_var_value(self, evaluator):
 
-		return self._parent.get_field(evaluator, self._field)
+		parent = self._parent
+		for field in self._fields[:-1]:
+			parent = parent.get_field(evaluator, field)
+		return parent.get_field(evaluator, self._fields[-1])
 
 	def extract_parameter_name(self, evaluator):
 
-		if (self._parent != evaluator.get_function_scope()):
+		if (len(self._fields) > 1 or self._parent != evaluator.get_function_scope()):
 			raise CWRuntimeError(f"Invalid scope for parameter: {self._field}", evaluator.get_line())
-		if not (isinstance(self._field, str)):
+		if not (isinstance(self._fields[-1], str)):
 			raise CWRuntimeError(f"Parameter should not be numeric: {self._field}", evaluator.get_line())
 		return self._field
 

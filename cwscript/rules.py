@@ -63,9 +63,9 @@ _define_statement('continue', [], ContinueStatement)
 _define_statement('break', [], BreakStatement)
 # len [value: string|container]
 _define_statement('len', ['value'], LengthStatement)
-# slice [value: string|list] [start: integral] [end: integral]
+# slice [value: string|list] [start: integer] [end: integer]
 _define_statement('slice', ['value', 'start', 'end'], SliceStatement)
-# slice_after [value: string|list] [start: integral] [end: integral]
+# slice_after [value: string|list] [start: integer] [end: integer]
 _define_statement('slice_after', ['value', 'start'], SliceAfterStatement)
 # find [source: string|container] [value: *]
 _define_statement('find', ['source', 'value'], FindStatement)
@@ -79,9 +79,9 @@ _define_statement('lower', ['source'], StringLowerCaseStatement)
 _define_statement('merge', ['list_1', 'list_2'], ListMergeStatement)
 # pop [source: container] [index: *]
 _define_statement('pop', ['source', 'index'], ContainerPopStatement)
-# range [end: integral]
+# range [end: integer]
 _define_statement('range', ['end'], RangeStatement)
-# adv_range [end: integral]
+# adv_range [start: integer] [end: integer] [step: integer]
 _define_statement('adv_range', ['start', 'end', 'step'], AdvancedRangeStatement)
 # function [parameters: list] [body: block]
 _define_statement('function', ['parameters', 'body'], FunctionStatement)
@@ -137,7 +137,7 @@ _define_statement('acos', ['value'], ArcCosStatement)
 _define_statement('atan', ['value'], ArcTanStatement)
 # atan2 [y: num] [x: num]
 _define_statement('atan2', ['y', 'x'], ArcTan2Statement)
-# rng_seed [value: integral]
+# rng_seed [value: integer]
 _define_statement('rng_seed', ['value'], RNGSetSeedStatement)
 # rng_get
 _define_statement('rng_get', [], RNGGetStatement)
@@ -145,13 +145,13 @@ _define_statement('rng_get', [], RNGGetStatement)
 _define_statement('rng_reset', [], RNGResetStatement)
 # random
 _define_statement('random', [], RandomFloatStatement)
-# random_range
+# random_range [min: int] [max: int]
 _define_statement('random_range', ['min', 'max'], RandomFloatRangeStatement)
 # random_choice [list: list]
 _define_statement('random_choice', ['list'], RandomChoiceStatement)
-# irandom [max: int]
+# irandom [max: integer]
 _define_statement('irandom', ['max'], RandomIntegerStatement)
-# irandom_range [min: int] [max: int]
+# irandom_range [min: integer] [max: integer]
 _define_statement('irandom_range', ['min', 'max'], RandomIntegerRangeStatement)
 # pi
 _define_statement('pi', [], PiStatement)

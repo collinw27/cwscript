@@ -1,6 +1,7 @@
 import sys
 
 from cwscript.program import Program
+from cwscript import rules
 
 if (__name__ == '__main__'):
 

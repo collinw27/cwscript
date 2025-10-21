@@ -215,8 +215,8 @@ class SliceStatement (StackBasicOperation):
 
 		return [
 			ArgRequest('value', ScriptValue),
-			ArgRequest('start', IntegralValue),
-			ArgRequest('end', IntegralValue)
+			ArgRequest('start', IntegerValue),
+			ArgRequest('end', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -236,7 +236,7 @@ class SliceAfterStatement (StackBasicOperation):
 
 		return [
 			ArgRequest('value', ScriptValue),
-			ArgRequest('start', IntegralValue)
+			ArgRequest('start', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -345,7 +345,7 @@ class ContainerPopStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		if (isinstance(args[0], ListValue)):
-			evaluator.assert_type(args[1], IntegralValue)
+			evaluator.assert_type(args[1], IntegerValue)
 			size = len(args[0].get_list())
 			if not (-size <= args[1].get_value() < size):
 				raise CWRuntimeError("List index '%s' out of bounds" % args[1].get_value(), evaluator.get_line())
@@ -361,7 +361,7 @@ class RangeStatement (StackBasicOperation):
 	def _define_args(self):
 
 		return [
-			ArgRequest('end', IntegralValue)
+			ArgRequest('end', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -373,9 +373,9 @@ class AdvancedRangeStatement (StackBasicOperation):
 	def _define_args(self):
 
 		return [
-			ArgRequest('start', IntegralValue),
-			ArgRequest('end', IntegralValue),
-			ArgRequest('step', IntegralValue)
+			ArgRequest('start', IntegerValue),
+			ArgRequest('end', IntegerValue),
+			ArgRequest('step', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -842,7 +842,7 @@ class RNGSetSeedStatement (StackBasicOperation):
 	def _define_args(self):
 
 		return [
-			ArgRequest('value', IntegralValue)
+			ArgRequest('value', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -925,7 +925,7 @@ class RandomIntegerStatement (StackBasicOperation):
 	def _define_args(self):
 
 		return [
-			ArgRequest('max', IntegralValue)
+			ArgRequest('max', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):
@@ -937,8 +937,8 @@ class RandomIntegerRangeStatement (StackBasicOperation):
 	def _define_args(self):
 
 		return [
-			ArgRequest('min', IntegralValue),
-			ArgRequest('max', IntegralValue)
+			ArgRequest('min', IntegerValue),
+			ArgRequest('max', IntegerValue)
 		]
 
 	def _finish(self, evaluator, args):

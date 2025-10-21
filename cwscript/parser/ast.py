@@ -89,7 +89,7 @@ class ASTValue (ASTNode):
 			return evaluator.assert_type(StringValue(evaluator, self._value), value_type)
 		elif (self._dtype == self.TYPE_VARIABLE):
 
-			# Format is self._value = [is_global, value]
+			# Format is self._value = [is_global, values]
 
 			if (self._value[0]):
 				parent = evaluator.get_global_scope()
@@ -223,10 +223,15 @@ class ASTValue (ASTNode):
 		if not (len(string) > 0 and (string[0] == '.' or string[:7] == 'global.')):
 			raise CWParseError(f"Invalid variable '{string}'", line)
 		is_global = (string[:7] == 'global.')
-		value = string[7:] if is_global else string[1:]
-		if (len([c for c in value if c not in VAR_ALLOWED]) > 0):
-			raise CWParseError(f"Invalid variable '{string}'", line)
-		return ASTValue(line, ASTNode.TYPE_VARIABLE, [is_global, value])
+
+		# Split into strings at each . delimiter
+		# Cannot have two adjacent .
+
+		values = (string[7:] if is_global else string[1:]).split('.')
+		for value in values:
+			if (not value or len([c for c in value if c not in VAR_ALLOWED]) > 0):
+				raise CWParseError(f"Invalid variable '{string}'", line)
+		return ASTValue(line, ASTNode.TYPE_VARIABLE, [is_global, values])
 
 class ASTOperation (ASTNode):
 
