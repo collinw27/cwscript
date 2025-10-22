@@ -3,7 +3,11 @@ from cwscript.evaluator.value.base import ScriptValue
 
 class MutableValue (ScriptValue):
 
-	pass
+	# For mutable objects, === checks memory address
+
+	def is_same(self, evaluator, other):
+
+		return (self._id == other._id)
 
 class FunctionValue (MutableValue):
 

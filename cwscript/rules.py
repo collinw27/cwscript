@@ -43,30 +43,48 @@ def get_arg(root, index):
 _statements = {}
 _statement_args = {}
 
-# print [value: string]
+# print [value: *]
 _define_statement('print', ['value'], PrintStatement)
+# prints [value: *]
+_define_statement('prints', ['value'], PrintShortStatement)
 # local
 _define_statement('local', [], LocalScopeStatement)
 # global
 _define_statement('global', [], GlobalScopeStatement)
+# bool [value: *]
+_define_statement('bool', ['value'], BoolCastStatement)
+# int [value: numeric|string]
+_define_statement('int', ['value'], IntCastStatement)
+# float [value: numeric|string]
+_define_statement('float', ['value'], FloatCastStatement)
 # str [value: *]
 _define_statement('str', ['value'], StringCastStatement)
+# type_of [value: *]
+_define_statement('type_of', ['value'], TypeOfStatement)
 # if [condition: *] [body: block]
 _define_statement('if', ['condition', 'body'], IfStatement)
 # while [condition: *] [body: block]
 _define_statement('while', ['condition', 'body'], WhileLoopStatement)
-# for [iterator: var] in [list: list] [body: block]
+# for [iterator: variable] in [list: list] [body: block]
 _define_statement('for', ['iterator', 'in|KEYWORD', 'list', 'body'], ForLoopStatement)
-# continue [value: *]
+# continue
 _define_statement('continue', [], ContinueStatement)
-# break [value: *]
+# break
 _define_statement('break', [], BreakStatement)
+# try [body: block] catch [error: variable] [catch_body: block]
+_define_statement('try', ['body', 'catch|KEYWORD', 'error', 'catch_body'], TryCatchStatement)
+# throw [exception: object]
+_define_statement('throw', ['exception'], ThrowStatement)
 # len [value: string|container]
 _define_statement('len', ['value'], LengthStatement)
 # slice [value: string|list] [start: integer] [end: integer]
 _define_statement('slice', ['value', 'start', 'end'], SliceStatement)
 # slice_after [value: string|list] [start: integer] [end: integer]
 _define_statement('slice_after', ['value', 'start'], SliceAfterStatement)
+# split [source: string] [delimiter: string]
+_define_statement('split', ['source', 'delimiter'], StringSplitStatement)
+# join [source: list] [delimiter: string]
+_define_statement('join', ['source', 'delimiter'], StringJoinStatement)
 # find [source: string|container] [value: *]
 _define_statement('find', ['source', 'value'], FindStatement)
 # replace [source: string] [old: string] with [new: string]
@@ -75,9 +93,11 @@ _define_statement('replace', ['source', 'old', 'with|KEYWORD', 'new'], StringRep
 _define_statement('upper', ['source'], StringUpperCaseStatement)
 # lower [source: string]
 _define_statement('lower', ['source'], StringLowerCaseStatement)
+# append [source: list] [value: *]
+_define_statement('append', ['source', 'value'], ListAppendStatement)
 # merge [list_1: list] [list_2: list]
 _define_statement('merge', ['list_1', 'list_2'], ListMergeStatement)
-# pop [source: container] [index: *]
+# pop [source: container] [index: integer|string]
 _define_statement('pop', ['source', 'index'], ContainerPopStatement)
 # range [end: integer]
 _define_statement('range', ['end'], RangeStatement)
@@ -89,12 +109,16 @@ _define_statement('function', ['parameters', 'body'], FunctionStatement)
 _define_statement('return', ['value'], ReturnStatement)
 # call [function: function] [args: list]
 _define_statement('call', ['function', 'args'], CallStatement)
-# object [body: block]
-_define_statement('object', ['body'], ObjectStatement)
+# new [body: block]
+_define_statement('new', ['body'], NewObjectStatement)
 # o_keys [object: object]
 _define_statement('o_keys', ['object'], ObjectKeysStatement)
 # o_values [object: object]
 _define_statement('o_values', ['object'], ObjectValuesStatement)
+# getd [object: object] [field: string] [default: *]
+_define_statement('getd', ['object', 'field', 'default'], GetDefaultStatement)
+# setd [object: object] [field: string] [default: *]
+_define_statement('setd', ['object', 'field', 'default'], SetDefaultStatement)
 # round [value: num]
 _define_statement('round', ['value'], RoundStatement)
 # floor [value: num]
@@ -155,8 +179,8 @@ _define_statement('irandom', ['max'], RandomIntegerStatement)
 _define_statement('irandom_range', ['min', 'max'], RandomIntegerRangeStatement)
 # pi
 _define_statement('pi', [], PiStatement)
-# euler
-_define_statement('euler', [], EulerStatement)
+# e
+_define_statement('e', [], EulerStatement)
 
 # OPERATORS
 
@@ -205,7 +229,7 @@ _define_op_group(True, ':', [OperatorIndex])
 _define_op_group(True, '**', [OperatorExponent])
 _define_op_group(True, '* / // %', [OperatorMultiply, OperatorFloatDivide, OperatorIntDivide, OperatorModulus])
 _define_op_group(True, '+ -', [OperatorAdd, OperatorSubtract])
-_define_op_group(True, '> < >= <= == !=', [OperatorGreater, OperatorLess, OperatorGreaterEqual, OperatorLessEqual, OperatorEqual, OperatorUnequal])
+_define_op_group(True, '> < >= <= == != === !==', [OperatorGreater, OperatorLess, OperatorGreaterEqual, OperatorLessEqual, OperatorEqual, OperatorUnequal, OperatorSame, OperatorNotSame])
 _define_op_group(True, '&&', [OperatorAnd])
 _define_op_group(True, '||', [OperatorOr])
 _define_op_group(False, '= += -= *= /= //= %= **=', [OperatorAssign, OperatorAssignAdd, OperatorAssignSubtract, OperatorAssignMultiply, OperatorAssignFloatDivide, OperatorAssignIntDivide, OperatorAssignModulus, OperatorAssignExponent])

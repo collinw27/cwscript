@@ -22,6 +22,19 @@ class PrintStatement (StackBasicOperation):
 		print(args[0].to_string(evaluator))
 		return NullValue(evaluator)
 
+class PrintShortStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		print(args[0].to_string(evaluator), end='')
+		return NullValue(evaluator)
+
 class LocalScopeStatement (StackOperation):
 
 	def __init__(self, args, line, value_type, eval_vars):
@@ -42,6 +55,81 @@ class GlobalScopeStatement (StackOperation):
 
 		return evaluator.get_global_scope()
 
+class BoolCastStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return BoolValue(evaluator, args[0].to_bool(evaluator))
+
+class IntCastStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], NumericValue)):
+			return IntValue(evaluator, trunc(args[0].get_value()))
+
+		# Int casting is more strict than python's
+
+		elif (isinstance(args[0], StringValue)):
+			try:
+				value = args[0].get_value()
+				assert (value)
+				is_negative = (value[0] == '-')
+				if (is_negative):
+					value = value[1:]
+					assert (value)
+				assert not [c for c in value if value not in "1234567890"]
+				return IntValue(evaluator, int(value) * (-1 if is_negative else 1))
+			except (ValueError, AssertionError):
+				raise CWRuntimeError("Invalid integer %s" % args[0].to_string(evaluator, False), evaluator.get_line())
+
+		else:
+			evaluator.unmatched_type_error(args[0], [NumericValue, StringValue])
+
+class FloatCastStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], NumericValue)):
+			return FloatValue(evaluator, args[0].get_value())
+
+		# String casting is more strict than python's
+
+		elif (isinstance(args[0], StringValue)):
+			try:
+				value = args[0].get_value()
+				assert (value)
+				is_negative = (value[0] == '-')
+				if (is_negative):
+					value = value[1:]
+					assert (value)
+				assert (value[0] != '.' and value[-1] != '.')
+				assert not [c for c in value if c not in "1234567890."]
+				return FloatValue(evaluator, float(value) * (-1 if is_negative else 1))
+			except (ValueError, AssertionError):
+				raise CWRuntimeError("Invalid float %s" % args[0].to_string(evaluator, False), evaluator.get_line())
+
+		else:
+			evaluator.unmatched_type_error(args[0], [NumericValue, StringValue])
+
 class StringCastStatement (StackBasicOperation):
 
 	def _define_args(self):
@@ -53,6 +141,37 @@ class StringCastStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		return StringValue(evaluator, args[0].to_string(evaluator))
+
+class TypeOfStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], NullValue)):
+			return StringValue(evaluator, "null")
+		elif (isinstance(args[0], BoolValue)):
+			return StringValue(evaluator, "bool")
+		elif (isinstance(args[0], IntValue)):
+			return StringValue(evaluator, "int")
+		elif (isinstance(args[0], FloatValue)):
+			return StringValue(evaluator, "float")
+		elif (isinstance(args[0], StringValue)):
+			return StringValue(evaluator, "string")
+		elif (isinstance(args[0], VariableValue)):
+			return StringValue(evaluator, "variable")
+		elif (isinstance(args[0], FunctionValue)):
+			return StringValue(evaluator, "function")
+		elif (isinstance(args[0], ListValue)):
+			return StringValue(evaluator, "list")
+		elif (isinstance(args[0], ObjectValue)):
+			return StringValue(evaluator, "object")
+		else:
+			raise RuntimeError("Invalid type")
 
 class IfStatement (StackOperation):
 
@@ -190,6 +309,54 @@ class BreakStatement (StackOperation):
 		evaluator.raise_interrupt(BreakInterrupt())
 		return NullValue(evaluator)
 
+class TryCatchStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+		self._args = args
+		self._state = None
+
+	def _evaluate(self, evaluator, last_value):
+
+		# Run the block
+		# `state` is None if unrun, True if ran successfully, and False if caused an error
+
+		if (self._state is None):
+			self._state = True
+			evaluator.request_value(self._args['body'], ScriptValue)
+		else:
+			return BoolValue(evaluator, self._state)
+
+	# Run catch block when exception is received
+	# Note that the error will persist in the scope after execution is finished
+
+	def handle_interrupt(self, evaluator, interrupt):
+
+		if (isinstance(interrupt, ExceptionInterrupt)):
+			var_name = self._args['error'].eval_as_variable(evaluator)
+			evaluator.get_function_scope().set_field(evaluator, var_name, interrupt.value)
+			self._state = False
+			evaluator.handle_interrupt()
+			evaluator.request_value(self._args['catch_body'], ScriptValue)
+		elif (isinstance(interrupt, ContinueInterrupt)):
+			raise CWRuntimeError("Invalid use of continue", evaluator.get_line())
+		elif (isinstance(interrupt, BreakInterrupt)):
+			raise CWRuntimeError("Invalid use of break", evaluator.get_line())
+
+class ThrowStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('exception', ObjectValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		evaluator.raise_interrupt(ExceptionInterrupt(args[0]))
+		return NullValue(evaluator)
+
 class LengthStatement (StackBasicOperation):
 
 	def _define_args(self):
@@ -249,6 +416,45 @@ class SliceAfterStatement (StackBasicOperation):
 			return ListValue(evaluator, args[0].get_list()[args[1].get_value():])
 		else:
 			evaluator.unmatched_type_error(args[0], [StringValue, ListValue])
+
+class StringSplitStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', StringValue),
+			ArgRequest('delimiter', StringValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		# Empty source returns []
+		# Empty delimiter splits every character individually
+
+		if (not args[0].get_value()):
+			return ListValue(evaluator, [])
+		elif (not args[1].get_value()):
+			return ListValue(evaluator, [StringValue(evaluator, c) for c in args[0].get_value()])
+		else:
+			return ListValue(evaluator, [StringValue(evaluator, c) for c in args[0].get_value().split(args[1].get_value())])
+
+class StringJoinStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', ListValue),
+			ArgRequest('delimiter', StringValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		# Return empty string if source is empty
+
+		if (not args[0].get_list()):
+			return StringValue(evaluator, "")
+		else:
+			return StringValue(evaluator, args[1].get_value().join([s.to_string(evaluator) for s in args[0].get_list()]))
 
 # String & list: try to find index, return -1 if cannot
 # Object: try to find key (arbitrary choice if multiple), otherwise return null
@@ -317,6 +523,20 @@ class StringLowerCaseStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		return StringValue(evaluator, args[0].get_value().lower())
+
+class ListAppendStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('source', ListValue),
+			ArgRequest('value', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		args[0].get_list().append(args[1])
+		return args[0]
 
 class ListMergeStatement (StackBasicOperation):
 
@@ -470,6 +690,7 @@ class CallStatement (StackOperation):
 	# Exit on return interrupt
 	# Error on continue/break interrupt, since
 	# continue/break cannot propogate past function scope
+	# Make sure to remove scope for unhandled interrupts
 
 	def handle_interrupt(self, evaluator, interrupt):
 
@@ -480,11 +701,13 @@ class CallStatement (StackOperation):
 			raise CWRuntimeError("Invalid use of continue", evaluator.get_line())
 		elif (isinstance(interrupt, BreakInterrupt)):
 			raise CWRuntimeError("Invalid use of break", evaluator.get_line())
+		else:
+			evaluator.pop_function_scope()
 
 # Creates an empty object and runs a code block on it
 # This is the intended replacement for dictionaries
 
-class ObjectStatement (StackOperation):
+class NewObjectStatement (StackOperation):
 
 	def __init__(self, args, line, value_type, eval_vars):
 
@@ -538,6 +761,34 @@ class ObjectValuesStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		return ListValue(evaluator, list(args[0].get_dict().values()))
+
+class GetDefaultStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('object', ObjectValue),
+			ArgRequest('field', StringValue),
+			ArgRequest('default', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return args[0].get_dict().get(args[1].get_value(), args[2])
+
+class SetDefaultStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('object', ObjectValue),
+			ArgRequest('field', StringValue),
+			ArgRequest('default', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return args[0].get_dict().setdefault(args[1].get_value(), args[2])
 
 class RoundStatement (StackBasicOperation):
 

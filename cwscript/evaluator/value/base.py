@@ -22,6 +22,12 @@ class ScriptValue:
 
 		return (self._id == other._id)
 
+	# For primitive types, same as checking equality
+
+	def is_same(self, evaluator, other):
+
+		return self.is_equal(evaluator, other)
+
 	# Casts a value to a boolean
 	# Most non-null values return true no matter what
 

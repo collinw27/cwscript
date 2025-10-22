@@ -291,7 +291,33 @@ class OperatorUnequal (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return BoolValue(evaluator, args[0].is_equal(evaluator, args[1]))
+		return BoolValue(evaluator, not args[0].is_equal(evaluator, args[1]))
+
+class OperatorSame (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('op_1', ScriptValue),
+			ArgRequest('op_2', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return BoolValue(evaluator, args[0].is_same(evaluator, args[1]))
+
+class OperatorNotSame (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('op_1', ScriptValue),
+			ArgRequest('op_2', ScriptValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		return BoolValue(evaluator, not args[0].is_same(evaluator, args[1]))
 
 # Since logical operators need to handle short-circuit evaluation,
 # they define their own implentation of StackOperation
@@ -322,6 +348,7 @@ class OperatorAnd (StackOperation):
 # if (){block_1} || {block_2}; will only run block_2 if block_1 is not run
 # This can be chained an arbitrary number of times:
 # if (){} || if (){} || if (){} || {};
+# In the lexer, `else` is quitely replaced with `||`
 
 class OperatorOr (StackOperation):
 

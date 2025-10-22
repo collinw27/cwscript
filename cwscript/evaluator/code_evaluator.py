@@ -81,7 +81,16 @@ class CodeEvaluator:
 			if (self._pending_interrupt is not None):
 				self._main_stack.pop()
 			if (len(self._main_stack) == 0):
-				raise CWRuntimeError("Unhandled interrupt", self.get_line())
+				if (isinstance(self._pending_interrupt, ContinueInterrupt)):
+					raise CWRuntimeError("Invalid use of continue", self.get_line())
+				elif (isinstance(self._pending_interrupt, BreakInterrupt)):
+					raise CWRuntimeError("Invalid use of break", self.get_line())
+				elif (isinstance(self._pending_interrupt, ReturnInterrupt)):
+					raise CWRuntimeError("Invalid use of return", self.get_line())
+				elif (isinstance(self._pending_interrupt, ExceptionInterrupt)):
+					raise CWRuntimeError("Unhandled exception: " + self._pending_interrupt.value.to_string(self), self.get_line())
+				else:
+					raise CWRuntimeError("Unhandled interrupt", self.get_line())
 
 		return len(self._main_stack) > 0
 

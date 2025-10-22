@@ -26,6 +26,18 @@ class ASTNode:
 
 		raise NotImplementedError()
 
+	# See implementation in ASTValue
+
+	def eval_as_parameters(self, evaluator):
+
+		raise CWRuntimeError("Invalid parameter list", self.get_line())
+
+	# Special method for using variable name for catch body
+
+	def eval_as_variable(self, evaluator):
+
+		raise CWRuntimeError("Invalid parameter name", self.get_line())
+
 # Corresponds to basic types whose evaluation method can easily
 # be stored in an if-else statement
 # In terms of actual evaluation method, there's technically no clear line
@@ -59,17 +71,23 @@ class ASTValue (ASTNode):
 
 	def eval_as_parameters(self, evaluator):
 
-		output = []
-		for node in self._value:
-			if (node._dtype != ASTNode.TYPE_VARIABLE):
-				raise CWRuntimeError("Invalid function parameter", self.get_line())
-			is_global, var_name = node._value
-			if (is_global):
-				raise CWRuntimeError("Invalid function parameter", self.get_line())
-			output.append(var_name)
+		if (self._dtype != ASTNode.TYPE_LIST):
+			raise CWRuntimeError("Invalid parameter list", self.get_line())
+		output = [node.eval_as_variable(evaluator) for node in self._value]
 		if (len(set(output)) != len(output)):
 			raise CWRuntimeError("Duplicate function parameter", self.get_line())
 		return output
+
+	# Special method for using variable name for catch body
+
+	def eval_as_variable(self, evaluator):
+
+		if (self._dtype != ASTNode.TYPE_VARIABLE):
+			raise CWRuntimeError("Invalid parameter name", self.get_line())
+		is_global, var_names = self._value
+		if (is_global or len(var_names) > 1):
+			raise CWRuntimeError("Invalid parameter name", self.get_line())
+		return var_names[0]
 
 	def evaluate(self, evaluator, value_type, eval_vars):
 

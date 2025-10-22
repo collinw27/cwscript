@@ -20,3 +20,9 @@ class ContinueInterrupt:
 	def __init__(self):
 
 		pass
+
+class ExceptionInterrupt:
+
+	def __init__(self, value):
+
+		self.value = value
