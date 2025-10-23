@@ -1,28 +1,32 @@
 
 class Interrupt:
 
-	pass
+	def __init__(self, line):
 
-class ReturnInterrupt:
+		self._line = line
 
-	def __init__(self, value):
+	def get_line(self):
 
+		return self._line
+
+class ReturnInterrupt (Interrupt):
+
+	def __init__(self, line, value):
+
+		super().__init__(line)
 		self.value = value
 
-class BreakInterrupt:
+class BreakInterrupt (Interrupt):
 
-	def __init__(self):
+	pass
 
-		pass
+class ContinueInterrupt (Interrupt):
 
-class ContinueInterrupt:
+	pass
 
-	def __init__(self):
+class ExceptionInterrupt (Interrupt):
 
-		pass
+	def __init__(self, line, value):
 
-class ExceptionInterrupt:
-
-	def __init__(self, value):
-
+		super().__init__(line)
 		self.value = value

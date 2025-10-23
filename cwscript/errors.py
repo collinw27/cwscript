@@ -53,3 +53,13 @@ class CWMiscError (CWError):
     def __init__(self, message, line):
 
         super().__init__("Error", message, line)
+
+# A special error that will be caught by the evaluator
+# and raised as an exception the user can catch
+
+class CatchableError (Exception):
+
+    def __init__(self, e_type, body):
+
+        self.type = e_type
+        self.body = body

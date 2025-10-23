@@ -59,14 +59,23 @@ class CodeEvaluator:
 		# The same happens when an operation returns a value
 		# `_last_value` is reset ahead of evaluation to prepare for a new value
 
+		# The current operation (or any other methods it calls) is able to throw
+		# a CatchableError, which will be set as the current interrupt
+		# Although this is different from raising the exception via raise_interrupt(),
+		# it has the same effect, since execution of the topmost
+		# operation is interrupted but it still remains on the stack
+
 		if (self._pending_interrupt is None):
 			top_op = self._main_stack[-1]
 			last_value = self._last_value
 			self._last_value = None
-			output = top_op.evaluate_and_check(self, last_value)
-			if (output is not None):
-				self._last_value = output
-				self._main_stack.pop()
+			try:
+				output = top_op.evaluate_and_check(self, last_value)
+				if (output is not None):
+					self._last_value = output
+					self._main_stack.pop()
+			except CatchableError as e:
+				self.raise_exception(e.type, e.body)
 
 		# If an interrupt is pending, the topmost operation is given a change to handle it
 		# If it fails to, it's removed from the stack and the cycle continues
@@ -82,15 +91,17 @@ class CodeEvaluator:
 				self._main_stack.pop()
 			if (len(self._main_stack) == 0):
 				if (isinstance(self._pending_interrupt, ContinueInterrupt)):
-					raise CWRuntimeError("Invalid use of continue", self.get_line())
+					raise CWRuntimeError("Invalid use of continue", self._pending_interrupt.get_line())
 				elif (isinstance(self._pending_interrupt, BreakInterrupt)):
-					raise CWRuntimeError("Invalid use of break", self.get_line())
+					raise CWRuntimeError("Invalid use of break", self._pending_interrupt.get_line())
 				elif (isinstance(self._pending_interrupt, ReturnInterrupt)):
-					raise CWRuntimeError("Invalid use of return", self.get_line())
+					raise CWRuntimeError("Invalid use of return", self._pending_interrupt.get_line())
 				elif (isinstance(self._pending_interrupt, ExceptionInterrupt)):
-					raise CWRuntimeError("Unhandled exception: " + self._pending_interrupt.value.to_string(self), self.get_line())
+					raise CWRuntimeError("Unhandled exception: " + self._pending_interrupt.value.to_string(self),
+						self._pending_interrupt.get_line()
+					)
 				else:
-					raise CWRuntimeError("Unhandled interrupt", self.get_line())
+					raise CWRuntimeError("Unhandled interrupt", self._pending_interrupt.get_line())
 
 		return len(self._main_stack) > 0
 
@@ -151,13 +162,23 @@ class CodeEvaluator:
 
 		self._pending_interrupt = None
 
+	# Special case for errors raised by built-in functions
+
+	def raise_exception(self, e_type, body):
+
+		obj = ObjectValue(self)
+		obj.set_field(self, 'type', StringValue(self, e_type))
+		obj.set_field(self, 'body', StringValue(self, body))
+		self.raise_interrupt(ExceptionInterrupt(self.get_line(), obj))
+		return None
+
 	# Throws an error if an expression receives an incorrect type
 
 	def assert_type(self, value, value_type):
 
 		if (not isinstance(value, value_type)):
-			raise CWRuntimeError("Type assertion of type %s failed for value: %s" % (
-				value_type.__name__, value.to_string(self, False)), self.get_line()
+			self.raise_exception('invalid_type', "Type assertion of type %s failed for value: %s" % (
+				value_type.__name__, value.to_string(self, False))
 			)
 		return value
 
@@ -168,10 +189,9 @@ class CodeEvaluator:
 
 	def unmatched_type_error(self, value, value_types):
 
-		raise CWRuntimeError("Type assertion of types (%s) failed for value: %s" % (
+		self.raise_exception('invalid_type', "Type assertion of types (%s) failed for value: %s" % (
 			", ".join([str(v.__name__) for v in value_types]),
-			value.to_string(self, False)),
-			self.get_line()
+			value.to_string(self, False))
 		)
 
 	# RNG is stored internally instead of with ScriptValues

@@ -59,13 +59,13 @@ class ListValue (ContainerValue):
 	def set_field(self, evaluator, field, value):
 
 		if not (-len(self._values) <= field < len(self._values)):
-			raise CWRuntimeError("List index '%s' out of bounds" % field, evaluator.get_line())
+			raise CatchableError('invalid_index', "List index %s out of bounds" % field)
 		self._values[field] = value
 
 	def get_field(self, evaluator, field):
 
 		if not (-len(self._values) <= field < len(self._values)):
-			raise CWRuntimeError("List index '%s' out of bounds" % field, evaluator.get_line())
+			raise CatchableError('invalid_index', "List index %s out of bounds" % field)
 		return self._values[field]
 
 	def to_string(self, evaluator, isolated = True):
@@ -111,7 +111,7 @@ class ObjectValue (ContainerValue):
 	def get_field(self, evaluator, field):
 
 		if (field not in self._values):
-			raise CWRuntimeError("Invalid variable '%s'" % field, evaluator.get_line())
+			raise CatchableError('invalid_index', "Invalid variable '%s'" % field, evaluator.get_line())
 		return self._values[field]
 
 	def to_string(self, evaluator, isolated = True):

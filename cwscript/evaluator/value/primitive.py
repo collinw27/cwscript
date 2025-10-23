@@ -153,14 +153,6 @@ class VariableValue (ScriptValue):
 			parent = parent.get_field(evaluator, field)
 		return parent.get_field(evaluator, self._fields[-1])
 
-	def extract_parameter_name(self, evaluator):
-
-		if (len(self._fields) > 1 or self._parent != evaluator.get_function_scope()):
-			raise CWRuntimeError(f"Invalid scope for parameter: {self._field}", evaluator.get_line())
-		if not (isinstance(self._fields[-1], str)):
-			raise CWRuntimeError(f"Parameter should not be numeric: {self._field}", evaluator.get_line())
-		return self._field
-
 	def to_string(self, evaluator, isolated = True):
 
 		return f"VAR:0x{self._id:0x}"

@@ -56,7 +56,7 @@ def _op_multiply(evaluator, op_1, op_2):
 def _op_float_divide(evaluator, op_1, op_2):
 
 	if (op_2.get_value() == 0):
-		raise CWRuntimeError("Division by zero", evaluator.get_line())
+		raise CatchableError('zero_division', "Division by zero")
 	return FloatValue(evaluator, op_1.get_value() / op_2.get_value())
 
 # Int divide (unsurprisingly) always returns an int
@@ -65,7 +65,7 @@ def _op_float_divide(evaluator, op_1, op_2):
 def _op_int_divide(evaluator, op_1, op_2):
 
 	if (op_2.get_value() == 0):
-		raise CWRuntimeError("Division by zero", evaluator.get_line())
+		raise CatchableError('zero_division', "Division by zero")
 	return IntValue(evaluator, trunc(op_1.get_value() / op_2.get_value()))
 
 # Float modulus is allowed
@@ -74,7 +74,7 @@ def _op_int_divide(evaluator, op_1, op_2):
 def _op_modulus(evaluator, op_1, op_2):
 
 	if (op_2.get_value() == 0):
-		raise CWRuntimeError("Division by zero", evaluator.get_line())
+		raise CatchableError('zero_division', "Division by zero")
 	return _binary_op_class(op_1, op_2)(evaluator, op_1.get_value() % op_2.get_value())
 
 # Unlike other operations, two integers return a float if
@@ -83,7 +83,7 @@ def _op_modulus(evaluator, op_1, op_2):
 def _op_exponent(evaluator, op_1, op_2):
 
 	if (op_1.get_value() == 0 and op_2.get_value() < 0):
-		raise CWRuntimeError("Division by zero", evaluator.get_line())
+		raise CatchableError('zero_division', "Division by zero")
 	if (_is_float_op(op_1, op_2)):
 		return FloatValue(evaluator, op_1.get_value() ** op_2.get_value())
 	else:
@@ -110,16 +110,16 @@ class OperatorIndex (StackBasicOperation):
 
 		if (isinstance(args[0], ObjectValue)):
 			evaluator.assert_type(args[1], StringValue)
-			return VariableValue(evaluator, args[0], args[1].get_value())
+			return VariableValue(evaluator, args[0], [args[1].get_value()])
 		elif (isinstance(args[0], ListValue)):
 			evaluator.assert_type(args[1], IntegerValue)
-			return VariableValue(evaluator, args[0], args[1].get_value())
+			return VariableValue(evaluator, args[0], [args[1].get_value()])
 		elif (isinstance(args[0], StringValue)):
 			evaluator.assert_type(args[1], IntegerValue)
 			string = args[0].get_value()
 			index = args[1].get_value()
 			if not (-len(string) <= index < len(string)):
-				raise CWRuntimeError("String index '%s' out of bounds" % index, evaluator.get_line())
+				raise CatchableError('invalid_index', "String index %s out of bounds" % index)
 			return StringValue(evaluator, string[index])
 		else:
 			evaluator.unmatched_type_error(args[0], [StringValue, ContainerValue])

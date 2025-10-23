@@ -93,7 +93,7 @@ class IntCastStatement (StackBasicOperation):
 				assert not [c for c in value if value not in "1234567890"]
 				return IntValue(evaluator, int(value) * (-1 if is_negative else 1))
 			except (ValueError, AssertionError):
-				raise CWRuntimeError("Invalid integer %s" % args[0].to_string(evaluator, False), evaluator.get_line())
+				raise CatchableError('invalid_cast', "Invalid integer %s" % args[0].to_string(evaluator, False))
 
 		else:
 			evaluator.unmatched_type_error(args[0], [NumericValue, StringValue])
@@ -125,7 +125,7 @@ class FloatCastStatement (StackBasicOperation):
 				assert not [c for c in value if c not in "1234567890."]
 				return FloatValue(evaluator, float(value) * (-1 if is_negative else 1))
 			except (ValueError, AssertionError):
-				raise CWRuntimeError("Invalid float %s" % args[0].to_string(evaluator, False), evaluator.get_line())
+				raise CatchableError('invalid_cast', "Invalid float %s" % args[0].to_string(evaluator, False))
 
 		else:
 			evaluator.unmatched_type_error(args[0], [NumericValue, StringValue])
@@ -295,7 +295,7 @@ class ContinueStatement (StackOperation):
 
 	def _evaluate(self, evaluator, last_value):
 
-		evaluator.raise_interrupt(ContinueInterrupt())
+		evaluator.raise_interrupt(ContinueInterrupt(evaluator.get_line()))
 		return NullValue(evaluator)
 
 class BreakStatement (StackOperation):
@@ -306,7 +306,7 @@ class BreakStatement (StackOperation):
 
 	def _evaluate(self, evaluator, last_value):
 
-		evaluator.raise_interrupt(BreakInterrupt())
+		evaluator.raise_interrupt(BreakInterrupt(evaluator.get_line()))
 		return NullValue(evaluator)
 
 class TryCatchStatement (StackOperation):
@@ -330,10 +330,12 @@ class TryCatchStatement (StackOperation):
 
 	# Run catch block when exception is received
 	# Note that the error will persist in the scope after execution is finished
+	# It is only caught if `_state` is True to prevent catching errors thrown
+	# from the catch block
 
 	def handle_interrupt(self, evaluator, interrupt):
 
-		if (isinstance(interrupt, ExceptionInterrupt)):
+		if (self._state and isinstance(interrupt, ExceptionInterrupt)):
 			var_name = self._args['error'].eval_as_variable(evaluator)
 			evaluator.get_function_scope().set_field(evaluator, var_name, interrupt.value)
 			self._state = False
@@ -354,7 +356,7 @@ class ThrowStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		evaluator.raise_interrupt(ExceptionInterrupt(args[0]))
+		evaluator.raise_interrupt(ExceptionInterrupt(evaluator.get_line(), args[0]))
 		return NullValue(evaluator)
 
 class LengthStatement (StackBasicOperation):
@@ -568,12 +570,12 @@ class ContainerPopStatement (StackBasicOperation):
 			evaluator.assert_type(args[1], IntegerValue)
 			size = len(args[0].get_list())
 			if not (-size <= args[1].get_value() < size):
-				raise CWRuntimeError("List index '%s' out of bounds" % args[1].get_value(), evaluator.get_line())
+				raise CatchableError('invalid_index', "List index %s out of bounds" % args[1].get_value())
 			return args[0].get_list().pop(args[1].get_value())
 		else:
 			evaluator.assert_type(args[1], StringValue)
 			if (args[1].get_value() not in args[0].get_dict()):
-				raise CWRuntimeError("Invalid variable '%s'" % args[1].get_value(), evaluator.get_line())
+				raise CatchableError('invalid_index', "Invalid variable '%s'" % args[1].get_value())
 			return args[0].get_dict().pop(args[1].get_value())
 
 class RangeStatement (StackBasicOperation):
@@ -634,7 +636,7 @@ class ReturnStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		evaluator.raise_interrupt(ReturnInterrupt(args[0]))
+		evaluator.raise_interrupt(ReturnInterrupt(evaluator.get_line(), args[0]))
 		return NullValue(evaluator)
 
 class CallStatement (StackOperation):
@@ -665,7 +667,7 @@ class CallStatement (StackOperation):
 			arg_values = last_value.get_list()
 			parameters = self._func.get_parameters(evaluator)
 			if (len(parameters) != len(arg_values)):
-				raise CWRuntimeError("Wrong number of arguments for function call", evaluator.get_line())
+				raise CatchableError('invalid_argument', "Wrong number of arguments for function call")
 
 			# Create a new variable scope, and initialize the function's variables within it
 
@@ -907,7 +909,7 @@ class MaxListStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		if (not args[0].get_list()):
-			raise CWRuntimeError("List cannot be empty", evaluator.get_line())
+			raise CatchableError('invalid_argument', "List cannot be empty")
 		val = args[0].get_list()[0]
 		for n in args[0].get_list()[1:]:
 			if (evaluator.assert_type(n, NumericValue).get_value() > val.get_value()):
@@ -924,7 +926,8 @@ class MinListStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		min_val = None
+		if (not args[0].get_list()):
+			raise CatchableError('invalid_argument', "List cannot be empty")
 		val = args[0].get_list()[0]
 		for n in args[0].get_list()[1:]:
 			if (evaluator.assert_type(n, NumericValue).get_value() < val.get_value()):
@@ -944,7 +947,7 @@ class ClampStatement (StackBasicOperation):
 	def _finish(self, evaluator, args):
 
 		if (args[1].get_value() > args[2].get_value()):
-			raise CWRuntimeError("Invalid clamp bounds", evaluator.get_line())
+			raise CatchableError('invalid_argument', "Invalid clamp bounds")
 		elif (args[0].get_value() < args[1].get_value()):
 			return args[1]
 		elif (args[0].get_value() > args[2].get_value()):
@@ -981,7 +984,7 @@ class LogStatement (StackBasicOperation):
 		try:
 			return FloatValue(evaluator, log(args[1].get_value(), args[0].get_value()))
 		except (ValueError, ZeroDivisionError):
-			raise CWRuntimeError("Invalid argument for logarithm", evaluator.get_line())
+			raise CatchableError('invalid_argument', "Invalid argument for logarithm")
 
 class NaturalLogStatement (StackBasicOperation):
 
@@ -996,7 +999,7 @@ class NaturalLogStatement (StackBasicOperation):
 		try:
 			return FloatValue(evaluator, log(args[0].get_value()))
 		except (ValueError, ZeroDivisionError):
-			raise CWRuntimeError("Invalid argument for logarithm", evaluator.get_line())
+			raise CatchableError('invalid_argument', "Invalid argument for logarithm")
 
 class SinStatement (StackBasicOperation):
 
