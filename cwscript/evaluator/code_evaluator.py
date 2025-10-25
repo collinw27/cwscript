@@ -177,7 +177,7 @@ class CodeEvaluator:
 	def assert_type(self, value, value_type):
 
 		if (not isinstance(value, value_type)):
-			self.raise_exception('invalid_type', "Type assertion of type %s failed for value: %s" % (
+			raise CatchableError('invalid_type', "Type assertion of type %s failed for value: %s" % (
 				value_type.__name__, value.to_string(self, False))
 			)
 		return value
@@ -189,7 +189,7 @@ class CodeEvaluator:
 
 	def unmatched_type_error(self, value, value_types):
 
-		self.raise_exception('invalid_type', "Type assertion of types (%s) failed for value: %s" % (
+		raise CatchableError('invalid_type', "Type assertion of types (%s) failed for value: %s" % (
 			", ".join([str(v.__name__) for v in value_types]),
 			value.to_string(self, False))
 		)

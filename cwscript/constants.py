@@ -8,7 +8,7 @@ CLOSING_GROUPINGS = list(")}]")
 BOOLS = ["true", "false"]
 NEWLINES = list('\n\r')
 
-ALPHA = list('abcdefghijklmnopqrstuvwxyz')
+ALPHA = list('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
 NUMS = list('0123456789')
 
 VAR_ALLOWED = ALPHA + NUMS + ['_']

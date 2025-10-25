@@ -84,13 +84,16 @@ def _op_exponent(evaluator, op_1, op_2):
 
 	if (op_1.get_value() == 0 and op_2.get_value() < 0):
 		raise CatchableError('zero_division', "Division by zero")
+	val = op_1.get_value() ** op_2.get_value()
+	if (isinstance(val, complex)):
+		raise CatchableError('invalid_argument', "Even root of negative number")
 	if (_is_float_op(op_1, op_2)):
-		return FloatValue(evaluator, op_1.get_value() ** op_2.get_value())
+		return FloatValue(evaluator, val)
 	else:
 		if (op_2.get_value() >= 0):
-			return IntValue(evaluator, op_1.get_value() ** op_2.get_value())
+			return IntValue(evaluator, val)
 		else:
-			return FloatValue(evaluator, op_1.get_value() ** op_2.get_value())
+			return FloatValue(evaluator, val)
 
 # Accepts containers or strings
 # Containers return a VariableValue, and can therefore be used

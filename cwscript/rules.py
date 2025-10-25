@@ -40,6 +40,10 @@ def get_arg(root, index):
 
 	return _statement_args[root][index]
 
+def get_statement_names():
+
+	return list(_statements.keys())
+
 _statements = {}
 _statement_args = {}
 
@@ -79,7 +83,7 @@ _define_statement('throw', ['exception'], ThrowStatement)
 _define_statement('len', ['value'], LengthStatement)
 # slice [value: string|list] [start: integer] [end: integer]
 _define_statement('slice', ['value', 'start', 'end'], SliceStatement)
-# slice_after [value: string|list] [start: integer] [end: integer]
+# slice_after [value: string|list] [start: integer]
 _define_statement('slice_after', ['value', 'start'], SliceAfterStatement)
 # split [source: string] [delimiter: string]
 _define_statement('split', ['source', 'delimiter'], StringSplitStatement)
@@ -95,22 +99,24 @@ _define_statement('upper', ['source'], StringUpperCaseStatement)
 _define_statement('lower', ['source'], StringLowerCaseStatement)
 # append [source: list] [value: *]
 _define_statement('append', ['source', 'value'], ListAppendStatement)
-# merge [list_1: list] [list_2: list]
-_define_statement('merge', ['list_1', 'list_2'], ListMergeStatement)
 # pop [source: container] [index: integer|string]
 _define_statement('pop', ['source', 'index'], ContainerPopStatement)
 # range [end: integer]
 _define_statement('range', ['end'], RangeStatement)
 # adv_range [start: integer] [end: integer] [step: integer]
 _define_statement('adv_range', ['start', 'end', 'step'], AdvancedRangeStatement)
-# function [parameters: list] [body: block]
-_define_statement('function', ['parameters', 'body'], FunctionStatement)
+# function [name: variable] [parameters: list] [body: block]
+_define_statement('function', ['name', 'parameters', 'body'], FunctionStatement)
+# lambda [parameters: list] [body: block]
+_define_statement('lambda', ['parameters', 'body'], LambdaStatement)
 # return [value: *]
 _define_statement('return', ['value'], ReturnStatement)
 # call [function: function] [args: list]
 _define_statement('call', ['function', 'args'], CallStatement)
 # new [body: block]
 _define_statement('new', ['body'], NewObjectStatement)
+# copy [object: container]
+_define_statement('copy', ['object'], CopyStatement)
 # o_keys [object: object]
 _define_statement('o_keys', ['object'], ObjectKeysStatement)
 # o_values [object: object]
@@ -119,47 +125,47 @@ _define_statement('o_values', ['object'], ObjectValuesStatement)
 _define_statement('getd', ['object', 'field', 'default'], GetDefaultStatement)
 # setd [object: object] [field: string] [default: *]
 _define_statement('setd', ['object', 'field', 'default'], SetDefaultStatement)
-# round [value: num]
+# round [value: numeric]
 _define_statement('round', ['value'], RoundStatement)
-# floor [value: num]
+# floor [value: numeric]
 _define_statement('floor', ['value'], FloorStatement)
-# ceil [value: num]
+# ceil [value: numeric]
 _define_statement('ceil', ['value'], CeilStatement)
-# trunc [value: num]
+# trunc [value: numeric]
 _define_statement('trunc', ['value'], TruncateStatement)
-# abs [value: num]
+# abs [value: numeric]
 _define_statement('abs', ['value'], AbsoluteValueStatement)
-# sign [value: num]
+# sign [value: numeric]
 _define_statement('sign', ['value'], SignStatement)
-# max [value_1: num] [value_2: num]
+# max [value_1: numeric] [value_2: numeric]
 _define_statement('max', ['value_1', 'value_2'], MaxStatement)
-# min [value_1: num] [value_2: num]
+# min [value_1: numeric] [value_2: numeric]
 _define_statement('min', ['value_1', 'value_2'], MinStatement)
 # maxl [values: list]
 _define_statement('maxl', ['values'], MaxListStatement)
 # minl [values: list]
 _define_statement('minl', ['values'], MinListStatement)
-# clamp [value: num] [min: num] [max: num]
+# clamp [value: numeric] [min: numeric] [max: numeric]
 _define_statement('clamp', ['value', 'min', 'max'], ClampStatement)
-# sqrt [value: num]
+# sqrt [value: numeric]
 _define_statement('sqrt', ['value'], SquareRootStatement)
-# log [base: num] [value: num]
+# log [base: numeric] [value: numeric]
 _define_statement('log', ['base', 'value'], LogStatement)
-# ln [value: num]
+# ln [value: numeric]
 _define_statement('ln', ['value'], NaturalLogStatement)
-# sin [value: num]
+# sin [value: numeric]
 _define_statement('sin', ['value'], SinStatement)
-# cos [value: num]
+# cos [value: numeric]
 _define_statement('cos', ['value'], CosStatement)
-# tan [value: num]
+# tan [value: numeric]
 _define_statement('tan', ['value'], TanStatement)
-# asin [value: num]
+# asin [value: numeric]
 _define_statement('asin', ['value'], ArcSinStatement)
-# acos [value: num]
+# acos [value: numeric]
 _define_statement('acos', ['value'], ArcCosStatement)
-# atan [value: num]
+# atan [value: numeric]
 _define_statement('atan', ['value'], ArcTanStatement)
-# atan2 [y: num] [x: num]
+# atan2 [y: numeric] [x: numeric]
 _define_statement('atan2', ['y', 'x'], ArcTan2Statement)
 # rng_seed [value: integer]
 _define_statement('rng_seed', ['value'], RNGSetSeedStatement)

@@ -1,2 +1,1 @@
-
-print minl [1, 2, 0];
+print "Empty file!";

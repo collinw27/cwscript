@@ -102,6 +102,10 @@ class ObjectValue (ContainerValue):
 
 		return self._values
 
+	def set_dict(self, values):
+
+		self._values = values
+
 	# `field` should be string
 
 	def set_field(self, evaluator, field, value):

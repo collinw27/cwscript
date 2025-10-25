@@ -1,0 +1,73 @@
+%YAML 1.2
+---
+name: CWScript
+file_extensions: [cw]
+scope: source.cw
+
+variables:
+  TM_COMMENT_START: '# '
+
+contexts:
+
+  main:
+    - include: comments
+    - include: string
+    - include: variable
+    - include: statement
+    - include: number
+    - include: operator
+    - include: separator
+    - include: keyword
+
+  comments:
+    - match: "#"
+      scope: punctuation.definition.comment.cwscript
+      push:
+        - meta_scope: comment.line
+        - match: \n
+          pop: true
+
+  string:
+    - match: "'"
+      push: string_single
+    - match: '"'
+      push: string_double
+
+  string_single:
+    - meta_scope: string.quoted.single
+    - match: \\.
+      scope: constant.character.escape.cwscript
+    - match: "'"
+      pop: true
+
+  string_double:
+    - meta_scope: string.quoted.double
+    - match: \\.
+      scope: constant.character.escape.cwscript
+    - match: '"'
+      pop: true
+
+  variable:
+    - match: "(?<=^|\\W)((?:\\.|global\\.)[A-Za-z0-9_.]*)"
+      captures:
+        1: keyword.declaration.cwscript
+
+  statement:
+    - match: \b(print|prints|local|global|bool|int|float|str|type_of|if|while|for|continue|break|try|throw|len|slice|slice_after|split|join|find|replace|upper|lower|append|pop|range|adv_range|function|lambda|return|call|new|copy|o_keys|o_values|getd|setd|round|floor|ceil|trunc|abs|sign|max|min|maxl|minl|clamp|sqrt|log|ln|sin|cos|tan|asin|acos|atan|atan2|rng_seed|rng_get|rng_reset|random|random_range|random_choice|irandom|irandom_range|pi|e|else)\b
+      scope: entity.other.inherited-class.cwscript
+
+  number:
+    - match: "-?[0-9]+\\.?[0-9]*"
+      scope: constant.numeric.cwscript
+
+  operator:
+    - match: "(=|<|>|!|\\+|-|\\*|\\/|\\?\\?|&&|\\|\\||%|:)"
+      scope: keyword.operator.arithmetic.cwscript
+
+  separator:
+    - match: "(,|;)"
+      scope: punctuation.separator.cwscript
+
+  keyword:
+    - match: \b(true|false|null)\b
+      scope: variable.language.cwscript

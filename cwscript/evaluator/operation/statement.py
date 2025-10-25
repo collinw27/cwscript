@@ -540,19 +540,6 @@ class ListAppendStatement (StackBasicOperation):
 		args[0].get_list().append(args[1])
 		return args[0]
 
-class ListMergeStatement (StackBasicOperation):
-
-	def _define_args(self):
-
-		return [
-			ArgRequest('list_1', ListValue),
-			ArgRequest('list_2', ListValue)
-		]
-
-	def _finish(self, evaluator, args):
-
-		return ListValue(evaluator, args[0].get_list() + args[1].get_list())
-
 # Pops value from list/object, returning the removed value
 
 class ContainerPopStatement (StackBasicOperation):
@@ -609,12 +596,22 @@ class AdvancedRangeStatement (StackBasicOperation):
 		range_iter = range(args[0].get_value(), args[1].get_value(), args[2].get_value())
 		return ListValue(evaluator, [IntValue(evaluator, a) for a in range_iter])
 
-# In the previous iteration of this project
-# functions were automatically 'bound' to the current object
-# Since I'm not sure how 'binding' functions will work in the future,
-# they're left out of this class for now
-
 class FunctionStatement (StackOperation):
+
+	def __init__(self, args, line, value_type, eval_vars):
+
+		super().__init__(line, value_type, eval_vars)
+		self._args = args
+
+	def _evaluate(self, evaluator, last_value):
+
+		name = self._args['name'].eval_as_variable(evaluator)
+		parameters = self._args['parameters'].eval_as_parameters(evaluator)
+		func = FunctionValue(evaluator, parameters, self._args['body'])
+		evaluator.get_function_scope().set_field(evaluator, name, func)
+		return func
+
+class LambdaStatement (StackOperation):
 
 	def __init__(self, args, line, value_type, eval_vars):
 
@@ -740,6 +737,25 @@ class NewObjectStatement (StackOperation):
 		elif (isinstance(interrupt, BreakInterrupt)):
 			raise CWRuntimeError("Invalid use of break", evaluator.get_line())
 
+# Creates a shallow copy of object
+
+class CopyStatement (StackBasicOperation):
+
+	def _define_args(self):
+
+		return [
+			ArgRequest('object', ContainerValue)
+		]
+
+	def _finish(self, evaluator, args):
+
+		if (isinstance(args[0], ListValue)):
+			return ListValue(evaluator, args[0].get_list().copy())
+		else:
+			o = ObjectValue(evaluator)
+			o.set_dict(args[0].get_dict().copy())
+			return o
+
 class ObjectKeysStatement (StackBasicOperation):
 
 	def _define_args(self):
@@ -790,7 +806,8 @@ class SetDefaultStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return args[0].get_dict().setdefault(args[1].get_value(), args[2])
+		args[0].get_dict().setdefault(args[1].get_value(), args[2])
+		return args[0].get_dict()[args[1].get_value()]
 
 class RoundStatement (StackBasicOperation):
 
@@ -881,7 +898,7 @@ class MaxStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return args[0] if (args[0].get_value() > args[1].get_value()) else args[1]
+		return args[0] if (args[0].get_value() >= args[1].get_value()) else args[1]
 
 class MinStatement (StackBasicOperation):
 
@@ -894,7 +911,7 @@ class MinStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return args[0] if (args[0].get_value() < args[1].get_value()) else args[1]
+		return args[0] if (args[0].get_value() <= args[1].get_value()) else args[1]
 
 # Error if empty list
 
@@ -968,6 +985,8 @@ class SquareRootStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
+		if (args[0].get_value() < 0):
+			raise CatchableError('invalid_argument', "Square root of negative")
 		return FloatValue(evaluator, args[0].get_value() ** 0.5)
 
 class LogStatement (StackBasicOperation):
@@ -1047,7 +1066,10 @@ class ArcSinStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return FloatValue(evaluator, asin(args[0].get_value()))
+		try:
+			return FloatValue(evaluator, asin(args[0].get_value()))
+		except ValueError:
+			raise CatchableError('invalid_argument', "Invalid domain for asin")
 
 class ArcCosStatement (StackBasicOperation):
 
@@ -1059,7 +1081,10 @@ class ArcCosStatement (StackBasicOperation):
 
 	def _finish(self, evaluator, args):
 
-		return FloatValue(evaluator, acos(args[0].get_value()))
+		try:
+			return FloatValue(evaluator, acos(args[0].get_value()))
+		except ValueError:
+			raise CatchableError('invalid_argument', "Invalid domain for acos")
 
 # Don't have to worry about domain because tangent is only undefined
 # for irrational values that cannot be represented with floating point

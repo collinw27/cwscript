@@ -134,8 +134,12 @@ def lex(code):
 			_pop_char()
 
 		# Check if token matches a defined statement root
+		# Exception: `else` is replaced with or operator `||`
+		# They have the same behavior, but `else` looks better in some circumstances
 
-		if (rules.is_statement(token)):
+		if (token == 'else'):
+			tokens.append(Token(Token.BINARY_OP, '||', _line))
+		elif (rules.is_statement(token)):
 			tokens.append(Token(Token.EXPR_ROOT, token, _line))
 		else:
 			tokens.append(Token(Token.FREE_TYPE, token, _line))
